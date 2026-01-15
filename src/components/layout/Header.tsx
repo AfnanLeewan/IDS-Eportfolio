@@ -1,17 +1,20 @@
 import { motion } from "framer-motion";
-import { GraduationCap, User, Users, Search, Bell, ChevronDown } from "lucide-react";
+import { GraduationCap, User, Users, Search, Bell, ChevronDown, Settings, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type UserRole = "teacher" | "student";
+export type ViewMode = "dashboard" | "management";
 
 interface HeaderProps {
   currentRole: UserRole;
   onRoleChange: (role: UserRole) => void;
   studentName?: string;
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
 }
 
-export function Header({ currentRole, onRoleChange, studentName }: HeaderProps) {
+export function Header({ currentRole, onRoleChange, studentName, viewMode = "dashboard", onViewModeChange }: HeaderProps) {
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -43,6 +46,40 @@ export function Header({ currentRole, onRoleChange, studentName }: HeaderProps) 
         </div>
 
         <div className="flex items-center gap-4">
+          {/* View Mode Toggle (Teacher Only) */}
+          {currentRole === "teacher" && onViewModeChange && (
+            <div className="flex rounded-xl bg-muted p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onViewModeChange("dashboard")}
+                className={cn(
+                  "relative gap-2 px-3 rounded-lg transition-all",
+                  viewMode === "dashboard"
+                    ? "bg-card shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                )}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onViewModeChange("management")}
+                className={cn(
+                  "relative gap-2 px-3 rounded-lg transition-all",
+                  viewMode === "management"
+                    ? "bg-card shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                )}
+              >
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Manage</span>
+              </Button>
+            </div>
+          )}
+
           {/* Role Toggle */}
           <div className="flex rounded-xl bg-muted p-1">
             <Button

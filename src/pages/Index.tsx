@@ -1,36 +1,60 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Header, UserRole } from "@/components/layout/Header";
+import { Header, UserRole, ViewMode } from "@/components/layout/Header";
 import { TeacherDashboard } from "@/components/dashboard/TeacherDashboard";
 import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
+import { ManagementDashboard } from "@/components/management/ManagementDashboard";
 import { mockStudents } from "@/lib/mockData";
 
 const Index = () => {
   const [currentRole, setCurrentRole] = useState<UserRole>("teacher");
+  const [viewMode, setViewMode] = useState<ViewMode>("dashboard");
   
   // For demo, use the first student
   const demoStudent = mockStudents[0];
+
+  // Reset to dashboard when switching to student role
+  const handleRoleChange = (role: UserRole) => {
+    setCurrentRole(role);
+    if (role === "student") {
+      setViewMode("dashboard");
+    }
+  };
 
   return (
     <div className="min-h-screen">
       <Header
         currentRole={currentRole}
-        onRoleChange={setCurrentRole}
+        onRoleChange={handleRoleChange}
         studentName={demoStudent.name}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
       
       <main className="container py-8">
         <AnimatePresence mode="wait">
           {currentRole === "teacher" ? (
-            <motion.div
-              key="teacher"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <TeacherDashboard />
-            </motion.div>
+            viewMode === "dashboard" ? (
+              <motion.div
+                key="teacher-dashboard"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <TeacherDashboard />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="teacher-management"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ManagementDashboard />
+              </motion.div>
+            )
           ) : (
             <motion.div
               key="student"
