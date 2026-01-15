@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Users, BookOpen, TrendingUp, AlertTriangle, Upload, Download, Settings } from "lucide-react";
+import { Users, BookOpen, TrendingUp, AlertTriangle, Upload, Download, Settings, School } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { SubjectRadarChart } from "./SubjectRadarChart";
 import { ClassComparisonChart } from "./ClassComparisonChart";
 import { WeaknessHeatmap } from "./WeaknessHeatmap";
+import { ClassDashboard } from "./ClassDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   mockStudents,
   preALevelProgram,
@@ -16,6 +19,8 @@ import {
 } from "@/lib/mockData";
 
 export function TeacherDashboard() {
+  const [selectedTab, setSelectedTab] = useState("overview");
+
   // Calculate stats
   const totalStudents = mockStudents.length;
   const overallAverage =
@@ -37,8 +42,8 @@ export function TeacherDashboard() {
     
     return {
       subject: subject.code,
-      studentScore: schoolAvg, // Using as "Current Cohort"
-      classAverage: 65, // Placeholder for "Previous Year" or target
+      studentScore: schoolAvg,
+      classAverage: 65,
       fullMark: 100,
     };
   });
@@ -63,7 +68,7 @@ export function TeacherDashboard() {
   const weakAreas = subTopicPerformance.filter((st) => st.averagePercentage < 60).length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Action Bar */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -91,99 +96,133 @@ export function TeacherDashboard() {
         </div>
       </motion.div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Students"
-          value={totalStudents}
-          subtitle={`Across ${classGroups.length} classes`}
-          icon={Users}
-          variant="primary"
-        />
-        <StatCard
-          title="Subjects Tracked"
-          value={preALevelProgram.subjects.length}
-          subtitle={`${preALevelProgram.subjects.reduce((acc, s) => acc + s.subTopics.length, 0)} sub-topics`}
-          icon={BookOpen}
-          variant="default"
-        />
-        <StatCard
-          title="Overall Average"
-          value={`${overallAverage.toFixed(1)}%`}
-          subtitle="School-wide performance"
-          icon={TrendingUp}
-          trend={{ value: 3.2, label: "vs last term" }}
-          variant="success"
-        />
-        <StatCard
-          title="Areas of Concern"
-          value={weakAreas}
-          subtitle="Sub-topics below 60%"
-          icon={AlertTriangle}
-          variant="warning"
-        />
-      </div>
+      {/* Tabs for Overview and Class Sub-dashboards */}
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
+        <TabsList className="bg-muted/50 p-1 rounded-xl">
+          <TabsTrigger 
+            value="overview" 
+            className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            <School className="h-4 w-4" />
+            <span>School Overview</span>
+          </TabsTrigger>
+          {classGroups.map((classGroup) => (
+            <TabsTrigger 
+              key={classGroup.id} 
+              value={classGroup.id}
+              className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+            >
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">{classGroup.name}</span>
+              <span className="sm:hidden">{classGroup.name.split('/')[1]}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
 
-      {/* Charts Row */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <SubjectRadarChart
-          data={schoolRadarData}
-          studentName="School Average vs Target"
-        />
-        <ClassComparisonChart
-          data={classComparisonData}
-          title="Class Performance Comparison"
-        />
-      </div>
-
-      {/* Weakness Analysis */}
-      <WeaknessHeatmap data={subTopicPerformance} />
-
-      {/* Recent Upload Activity */}
-      <Card className="shadow-card border-0 rounded-2xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold">Recent Uploads</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {[
-              { subject: "Physics", class: "M.6/1", date: "2 hours ago", status: "complete" },
-              { subject: "Chemistry", class: "M.6/2", date: "5 hours ago", status: "complete" },
-              { subject: "Mathematics", class: "M.6/3", date: "1 day ago", status: "pending" },
-            ].map((upload, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="flex items-center justify-between rounded-xl bg-muted/50 p-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <BookOpen className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{upload.subject}</p>
-                    <p className="text-xs text-muted-foreground">{upload.class}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">{upload.date}</span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      upload.status === "complete"
-                        ? "bg-success/10 text-success"
-                        : "bg-warning/10 text-warning"
-                    }`}
-                  >
-                    {upload.status}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
+        {/* School Overview Tab */}
+        <TabsContent value="overview" className="space-y-8 mt-0">
+          {/* Stats Grid */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              title="Total Students"
+              value={totalStudents}
+              subtitle={`Across ${classGroups.length} classes`}
+              icon={Users}
+              variant="primary"
+            />
+            <StatCard
+              title="Subjects Tracked"
+              value={preALevelProgram.subjects.length}
+              subtitle={`${preALevelProgram.subjects.reduce((acc, s) => acc + s.subTopics.length, 0)} sub-topics`}
+              icon={BookOpen}
+              variant="default"
+            />
+            <StatCard
+              title="Overall Average"
+              value={`${overallAverage.toFixed(1)}%`}
+              subtitle="School-wide performance"
+              icon={TrendingUp}
+              trend={{ value: 3.2, label: "vs last term" }}
+              variant="success"
+            />
+            <StatCard
+              title="Areas of Concern"
+              value={weakAreas}
+              subtitle="Sub-topics below 60%"
+              icon={AlertTriangle}
+              variant="warning"
+            />
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Charts Row */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <SubjectRadarChart
+              data={schoolRadarData}
+              studentName="School Average vs Target"
+            />
+            <ClassComparisonChart
+              data={classComparisonData}
+              title="Class Performance Comparison"
+            />
+          </div>
+
+          {/* Weakness Analysis */}
+          <WeaknessHeatmap data={subTopicPerformance} />
+
+          {/* Recent Upload Activity */}
+          <Card className="shadow-card border-0 rounded-2xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold">Recent Uploads</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[
+                  { subject: "Physics", class: "M.6/1", date: "2 hours ago", status: "complete" },
+                  { subject: "Chemistry", class: "M.6/2", date: "5 hours ago", status: "complete" },
+                  { subject: "Mathematics", class: "M.6/3", date: "1 day ago", status: "pending" },
+                ].map((upload, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-center justify-between rounded-xl bg-muted/50 p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <BookOpen className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{upload.subject}</p>
+                        <p className="text-xs text-muted-foreground">{upload.class}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">{upload.date}</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          upload.status === "complete"
+                            ? "bg-success/10 text-success"
+                            : "bg-warning/10 text-warning"
+                        }`}
+                      >
+                        {upload.status}
+                      </span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Class-specific Tabs */}
+        {classGroups.map((classGroup) => (
+          <TabsContent key={classGroup.id} value={classGroup.id} className="mt-0">
+            <ClassDashboard classGroup={classGroup} />
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 }
