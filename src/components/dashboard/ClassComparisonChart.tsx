@@ -23,10 +23,10 @@ interface ClassComparisonChartProps {
 }
 
 const COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
+  "#10B981", // emerald
+  "#3B82F6", // blue
+  "#F59E0B", // amber
+  "#8B5CF6", // violet
 ];
 
 export function ClassComparisonChart({
@@ -40,7 +40,7 @@ export function ClassComparisonChart({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.1 }}
     >
-      <Card className={className}>
+      <Card className={`shadow-card border-0 rounded-2xl ${className}`}>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-semibold">{title}</CardTitle>
         </CardHeader>

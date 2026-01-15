@@ -39,7 +39,7 @@ export function ScoreBreakdown({ student, className }: ScoreBreakdownProps) {
   };
 
   return (
-    <Card className={className}>
+    <Card className={`shadow-card border-0 rounded-2xl ${className}`}>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold">
           Detailed Score Breakdown
@@ -58,7 +58,7 @@ export function ScoreBreakdown({ student, className }: ScoreBreakdownProps) {
             return (
               <div
                 key={subject.id}
-                className="rounded-lg border bg-card overflow-hidden"
+                className="rounded-xl bg-muted/30 overflow-hidden"
               >
                 <button
                   onClick={() => toggleSubject(subject.id)}

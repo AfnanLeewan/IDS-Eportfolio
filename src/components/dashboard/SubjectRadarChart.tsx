@@ -34,7 +34,7 @@ export function SubjectRadarChart({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <Card className={className}>
+      <Card className={`shadow-card border-0 rounded-2xl ${className}`}>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-semibold">
             Subject Balance
@@ -67,16 +67,16 @@ export function SubjectRadarChart({
                 <Radar
                   name="Your Score"
                   dataKey="studentScore"
-                  stroke="hsl(var(--primary))"
-                  fill="hsl(var(--primary))"
+                  stroke="#10B981"
+                  fill="#10B981"
                   fillOpacity={0.3}
                   strokeWidth={2}
                 />
                 <Radar
                   name="Class Average"
                   dataKey="classAverage"
-                  stroke="hsl(var(--accent))"
-                  fill="hsl(var(--accent))"
+                  stroke="#3B82F6"
+                  fill="#3B82F6"
                   fillOpacity={0.15}
                   strokeWidth={2}
                   strokeDasharray="5 5"

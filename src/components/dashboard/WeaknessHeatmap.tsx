@@ -41,7 +41,7 @@ export function WeaknessHeatmap({ data, className }: WeaknessHeatmapProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 }}
     >
-      <Card className={className}>
+      <Card className={`shadow-card border-0 rounded-2xl ${className}`}>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold">
             Sub-Topic Performance Analysis

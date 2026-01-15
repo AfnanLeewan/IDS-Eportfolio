@@ -122,7 +122,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
         <SubjectRadarChart data={radarData} studentName={student.name} />
 
         {/* Strengths & Weaknesses */}
-        <Card>
+        <Card className="shadow-card border-0 rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-semibold">
               Performance Analysis
@@ -142,7 +142,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between rounded-lg bg-success/5 border border-success/20 p-3"
+                    className="flex items-center justify-between rounded-xl bg-success/5 p-3"
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-sm font-bold text-success">
@@ -171,7 +171,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + index * 0.1 }}
-                    className="flex items-center justify-between rounded-lg bg-warning/5 border border-warning/20 p-3"
+                    className="flex items-center justify-between rounded-xl bg-warning/5 p-3"
                   >
                     <div className="flex items-center gap-3">
                       <div
