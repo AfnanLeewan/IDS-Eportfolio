@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { GraduationCap, User, Users, Search, Bell, ChevronDown, Settings, LayoutDashboard } from "lucide-react";
+import { GraduationCap, User, Users, Search, Bell, ChevronDown, Settings, LayoutDashboard, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type UserRole = "teacher" | "student";
-export type ViewMode = "dashboard" | "management";
+export type ViewMode = "dashboard" | "management" | "scores";
 
 interface HeaderProps {
   currentRole: UserRole;
@@ -62,6 +62,20 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
               >
                 <LayoutDashboard className="h-4 w-4" />
                 <span className="hidden sm:inline">Dashboard</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onViewModeChange("scores")}
+                className={cn(
+                  "relative gap-2 px-3 rounded-lg transition-all",
+                  viewMode === "scores"
+                    ? "bg-card shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                )}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span className="hidden sm:inline">Scores</span>
               </Button>
               <Button
                 variant="ghost"

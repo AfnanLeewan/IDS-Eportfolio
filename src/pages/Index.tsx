@@ -4,6 +4,7 @@ import { Header, UserRole, ViewMode } from "@/components/layout/Header";
 import { TeacherDashboard } from "@/components/dashboard/TeacherDashboard";
 import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
 import { ManagementDashboard } from "@/components/management/ManagementDashboard";
+import { ScoresView } from "@/components/scores/ScoresView";
 import { mockStudents } from "@/lib/mockData";
 
 const Index = () => {
@@ -43,6 +44,16 @@ const Index = () => {
                 transition={{ duration: 0.3 }}
               >
                 <TeacherDashboard />
+              </motion.div>
+            ) : viewMode === "scores" ? (
+              <motion.div
+                key="teacher-scores"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ScoresView />
               </motion.div>
             ) : (
               <motion.div
