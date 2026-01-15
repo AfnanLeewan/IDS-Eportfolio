@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Users, BookOpen, TrendingUp, AlertTriangle, Upload, Download, Settings, School } from "lucide-react";
+import { Users, BookOpen, TrendingUp, AlertTriangle, Upload, Download, Settings, School, BarChart3 } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { SubjectRadarChart } from "./SubjectRadarChart";
 import { ClassComparisonChart } from "./ClassComparisonChart";
 import { WeaknessHeatmap } from "./WeaknessHeatmap";
 import { ClassDashboard } from "./ClassDashboard";
+import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -98,13 +99,20 @@ export function TeacherDashboard() {
 
       {/* Tabs for Overview and Class Sub-dashboards */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-        <TabsList className="bg-muted/50 p-1 rounded-xl">
+        <TabsList className="bg-muted/50 p-1 rounded-xl flex-wrap">
           <TabsTrigger 
             value="overview" 
             className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
           >
             <School className="h-4 w-4" />
             <span>School Overview</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="analytics" 
+            className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span>Analytics</span>
           </TabsTrigger>
           {classGroups.map((classGroup) => (
             <TabsTrigger 
@@ -214,6 +222,11 @@ export function TeacherDashboard() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Analytics Dashboard Tab */}
+        <TabsContent value="analytics" className="mt-0">
+          <AnalyticsDashboard />
         </TabsContent>
 
         {/* Class-specific Tabs */}
