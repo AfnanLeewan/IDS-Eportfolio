@@ -12,7 +12,7 @@ const Index = () => {
   const demoStudent = mockStudents[0];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen">
       <Header
         currentRole={currentRole}
         onRoleChange={setCurrentRole}
@@ -46,7 +46,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-card/50 py-6">
+      <footer className="border-t border-border/50 bg-card/80 backdrop-blur-sm py-6">
         <div className="container text-center text-sm text-muted-foreground">
           <p>EduAssess Platform • Pre-A-Level Analytics System</p>
           <p className="mt-1 text-xs">

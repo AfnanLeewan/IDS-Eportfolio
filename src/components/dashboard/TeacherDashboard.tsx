@@ -140,7 +140,7 @@ export function TeacherDashboard() {
       <WeaknessHeatmap data={subTopicPerformance} />
 
       {/* Recent Upload Activity */}
-      <Card>
+      <Card className="shadow-card border-0 rounded-2xl">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-semibold">Recent Uploads</CardTitle>
         </CardHeader>
@@ -156,7 +156,7 @@ export function TeacherDashboard() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="flex items-center justify-between rounded-lg border bg-muted/30 p-3"
+                className="flex items-center justify-between rounded-xl bg-muted/50 p-3"
               >
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">

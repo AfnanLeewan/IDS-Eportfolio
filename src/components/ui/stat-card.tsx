@@ -16,17 +16,17 @@ interface StatCardProps {
 }
 
 const variantStyles = {
-  default: "bg-card border-border",
-  primary: "bg-primary/5 border-primary/20",
-  success: "bg-success/5 border-success/20",
-  warning: "bg-warning/5 border-warning/20",
+  default: "bg-card border-0 shadow-card",
+  primary: "bg-primary/5 border-0 shadow-card",
+  success: "bg-success/5 border-0 shadow-card",
+  warning: "bg-warning/5 border-0 shadow-card",
 };
 
 const iconStyles = {
   default: "bg-muted text-muted-foreground",
-  primary: "bg-primary/10 text-primary",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
+  primary: "bg-primary/15 text-primary",
+  success: "bg-success/15 text-success",
+  warning: "bg-warning/15 text-warning",
 };
 
 export function StatCard({
@@ -44,7 +44,7 @@ export function StatCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       className={cn(
-        "relative overflow-hidden rounded-xl border p-6 shadow-card transition-all hover:shadow-elevated",
+        "relative overflow-hidden rounded-2xl p-6 transition-all hover:shadow-elevated",
         variantStyles[variant],
         className
       )}
