@@ -411,9 +411,26 @@ function SubjectScoreTable({
   const [editValue, setEditValue] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const subjectAverage = students.reduce((acc, s) => {
-    return acc + getSubjectScore(s, subject.id).percentage;
-  }, 0) / students.length || 0;
+  // Calculate subject statistics
+  const subjectStats = useMemo(() => {
+    if (students.length === 0) {
+      return { average: 0, highest: 0, lowest: 0, totalStudents: 0 };
+    }
+    
+    const percentages = students.map(s => getSubjectScore(s, subject.id).percentage);
+    const average = percentages.reduce((acc, p) => acc + p, 0) / percentages.length;
+    const highest = Math.max(...percentages);
+    const lowest = Math.min(...percentages);
+    
+    return {
+      average,
+      highest,
+      lowest,
+      totalStudents: students.length,
+    };
+  }, [students, subject.id]);
+
+  const subjectAverage = subjectStats.average;
 
   useEffect(() => {
     if (editingCell && inputRef.current) {
@@ -488,6 +505,32 @@ function SubjectScoreTable({
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0">
+              {/* Subject Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="p-4 rounded-xl bg-muted/50 border">
+                  <p className="text-sm text-muted-foreground mb-1">Total Students</p>
+                  <p className="text-2xl font-bold">{subjectStats.totalStudents}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border">
+                  <p className="text-sm text-muted-foreground mb-1">Average Score</p>
+                  <p className={cn("text-2xl font-bold", getScoreColor(subjectStats.average))}>
+                    {subjectStats.average.toFixed(1)}%
+                  </p>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border">
+                  <p className="text-sm text-muted-foreground mb-1">Highest Score</p>
+                  <p className="text-2xl font-bold text-emerald-600">
+                    {subjectStats.highest.toFixed(1)}%
+                  </p>
+                </div>
+                <div className="p-4 rounded-xl bg-muted/50 border">
+                  <p className="text-sm text-muted-foreground mb-1">Lowest Score</p>
+                  <p className="text-2xl font-bold text-red-500">
+                    {subjectStats.lowest.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+
               {/* Add Button */}
               <div className="flex justify-end mb-4">
                 <Button
