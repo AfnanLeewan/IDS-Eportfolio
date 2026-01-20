@@ -29,7 +29,7 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
           </div>
           <div>
             <h1 className="text-lg font-bold tracking-tight text-foreground">EduAssess</h1>
-            <p className="text-xs text-muted-foreground">Pre-A-Level Analytics</p>
+            <p className="text-xs text-muted-foreground">ระบบวิเคราะห์ผลสอบ Pre-A-Level</p>
           </div>
         </div>
 
@@ -39,7 +39,7 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="ค้นหา..."
               className="w-full rounded-lg border border-border bg-muted/50 py-2 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
             />
           </div>
@@ -61,7 +61,7 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
                 )}
               >
                 <LayoutDashboard className="h-4 w-4" />
-                <span className="hidden sm:inline">Dashboard</span>
+                <span className="hidden sm:inline">แดชบอร์ด</span>
               </Button>
               <Button
                 variant="ghost"
@@ -75,7 +75,7 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
                 )}
               >
                 <FileSpreadsheet className="h-4 w-4" />
-                <span className="hidden sm:inline">Scores</span>
+                <span className="hidden sm:inline">คะแนน</span>
               </Button>
               <Button
                 variant="ghost"
@@ -89,7 +89,7 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
                 )}
               >
                 <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Manage</span>
+                <span className="hidden sm:inline">จัดการ</span>
               </Button>
             </div>
           )}
@@ -108,7 +108,7 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
               )}
             >
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Teacher</span>
+              <span className="hidden sm:inline">ครู</span>
             </Button>
             <Button
               variant="ghost"
@@ -122,7 +122,7 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
               )}
             >
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Student</span>
+              <span className="hidden sm:inline">นักเรียน</span>
             </Button>
           </div>
 
@@ -143,10 +143,10 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
             </div>
             <div className="hidden sm:block text-left">
               <p className="text-sm font-medium text-foreground">
-                {currentRole === "teacher" ? "Admin Teacher" : studentName || "Student"}
+                {currentRole === "teacher" ? "ครูผู้ดูแล" : studentName || "นักเรียน"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {currentRole === "teacher" ? "Full Access" : "View Only"}
+                {currentRole === "teacher" ? "เข้าถึงทั้งหมด" : "ดูอย่างเดียว"}
               </p>
             </div>
             <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />

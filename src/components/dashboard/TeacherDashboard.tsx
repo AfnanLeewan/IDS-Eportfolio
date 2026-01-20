@@ -13,19 +13,19 @@ export function TeacherDashboard() {
         className="flex flex-wrap items-center justify-between gap-4"
       >
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Teacher Dashboard</h2>
+          <h2 className="text-2xl font-bold tracking-tight">แดชบอร์ดครู</h2>
           <p className="text-muted-foreground">
-            Pre-A-Level Examination • Academic Year 2025
+            การสอบ Pre-A-Level • ปีการศึกษา 2568
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-2">
             <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Download Template</span>
+            <span className="hidden sm:inline">ดาวน์โหลดแบบฟอร์ม</span>
           </Button>
           <Button size="sm" className="gap-2 gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-opacity">
             <Upload className="h-4 w-4" />
-            <span className="hidden sm:inline">Upload Scores</span>
+            <span className="hidden sm:inline">อัปโหลดคะแนน</span>
           </Button>
           <Button variant="ghost" size="icon">
             <Settings className="h-4 w-4" />

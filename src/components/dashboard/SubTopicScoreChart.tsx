@@ -84,9 +84,9 @@ export function SubTopicScoreChart({
           ? subTopic.name.substring(0, 12) + "..." 
           : subTopic.name,
         fullName: subTopic.name,
-        ...(studentScore !== null && { Student: Math.round(studentScore * 10) / 10 }),
-        "Class Avg": Math.round(classAvg * 10) / 10,
-        "Top 10%": Math.round(top10Avg * 10) / 10,
+        ...(studentScore !== null && { "นักเรียน": Math.round(studentScore * 10) / 10 }),
+        "ค่าเฉลี่ยห้อง": Math.round(classAvg * 10) / 10,
+        "ท็อป 10%": Math.round(top10Avg * 10) / 10,
       };
     });
   }, [student, subject, classId]);
@@ -102,13 +102,13 @@ export function SubTopicScoreChart({
           <div className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg font-semibold">
-              {subject.name} - Sub-topic Scores
+              {subject.name} - คะแนนหัวข้อย่อย
             </CardTitle>
           </div>
           <p className="text-sm text-muted-foreground">
             {student 
-              ? "Your performance vs Class Average vs Top 10%" 
-              : "Class Average vs Top 10% by Sub-topic"}
+              ? "ผลงานของคุณ เทียบกับ ค่าเฉลี่ยห้อง และ ท็อป 10%" 
+              : "ค่าเฉลี่ยห้อง และ ท็อป 10% แยกตามหัวข้อย่อย"}
           </p>
         </CardHeader>
         <CardContent>
@@ -162,20 +162,20 @@ export function SubTopicScoreChart({
                 />
                 {student && (
                   <Bar 
-                    dataKey="Student" 
+                    dataKey="นักเรียน" 
                     fill="hsl(var(--primary))" 
                     radius={[4, 4, 0, 0]} 
                     maxBarSize={40}
                   />
                 )}
                 <Bar 
-                  dataKey="Class Avg" 
+                  dataKey="ค่าเฉลี่ยห้อง" 
                   fill="hsl(var(--muted-foreground))" 
                   radius={[4, 4, 0, 0]} 
                   maxBarSize={40}
                 />
                 <Bar 
-                  dataKey="Top 10%" 
+                  dataKey="ท็อป 10%" 
                   fill="hsl(var(--success))" 
                   radius={[4, 4, 0, 0]} 
                   maxBarSize={40}
