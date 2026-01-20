@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,14 @@ import {
   getTotalScore,
   Student,
 } from "@/lib/mockData";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { SubTopicScoreChart } from "./SubTopicScoreChart";
 
 interface StudentDeepDiveProps {
   student: Student;
@@ -37,8 +45,12 @@ interface StudentDeepDiveProps {
 }
 
 export function StudentDeepDive({ student, classStudents }: StudentDeepDiveProps) {
+  const [selectedSubject, setSelectedSubject] = useState(preALevelProgram.subjects[0].id);
+  
   // Calculate student's total score
   const studentTotal = getTotalScore(student);
+  
+  const selectedSubjectData = preALevelProgram.subjects.find(s => s.id === selectedSubject);
 
   // Calculate class average
   const classAverage = useMemo(() => {
@@ -264,6 +276,32 @@ export function StudentDeepDive({ student, classStudents }: StudentDeepDiveProps
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Sub-topic Score Comparison with Subject Filter */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Sub-topic Analysis</h3>
+          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select Subject" />
+            </SelectTrigger>
+            <SelectContent>
+              {preALevelProgram.subjects.map((subject) => (
+                <SelectItem key={subject.id} value={subject.id}>
+                  {subject.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {selectedSubjectData && (
+          <SubTopicScoreChart 
+            student={student} 
+            subject={selectedSubjectData}
+            classId={student.classId}
+          />
+        )}
+      </div>
 
       {/* Weaknesses and Strengths */}
       <div className="grid gap-6 lg:grid-cols-2">
