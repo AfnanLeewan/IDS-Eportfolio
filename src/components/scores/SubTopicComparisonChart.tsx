@@ -45,7 +45,7 @@ export function SubTopicComparisonChart({
     if (!selectedSubject || students.length === 0) return [];
 
     return selectedSubject.subTopics.map((subTopic) => {
-      // Calculate average score for this sub-topic across all students
+      // Calculate scores for this sub-topic across all students
       const scoresForSubTopic = students
         .map((student) => {
           const score = student.scores.find((s) => s.subTopicId === subTopic.id);
@@ -58,6 +58,9 @@ export function SubTopicComparisonChart({
           ? scoresForSubTopic.reduce((acc, s) => acc + s, 0) / scoresForSubTopic.length
           : 0;
 
+      const maxScore = scoresForSubTopic.length > 0 ? Math.max(...scoresForSubTopic) : 0;
+      const minScore = scoresForSubTopic.length > 0 ? Math.min(...scoresForSubTopic) : 0;
+
       // Abbreviate long names
       const abbreviatedName =
         subTopic.name.length > 12
@@ -68,6 +71,8 @@ export function SubTopicComparisonChart({
         name: abbreviatedName,
         fullName: subTopic.name,
         average: Math.round(average * 10) / 10,
+        maxScore: Math.round(maxScore * 10) / 10,
+        minScore: Math.round(minScore * 10) / 10,
         studentCount: scoresForSubTopic.length,
       };
     });
@@ -88,7 +93,13 @@ export function SubTopicComparisonChart({
           <p className="text-sm text-muted-foreground">
             Average: <span className="font-semibold text-foreground">{data.average}%</span>
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
+            Max: <span className="font-semibold text-primary">{data.maxScore}%</span>
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Min: <span className="font-semibold text-destructive">{data.minScore}%</span>
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
             {data.studentCount} students
           </p>
         </div>
@@ -153,24 +164,31 @@ export function SubTopicComparisonChart({
                   className="text-muted-foreground"
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  wrapperStyle={{ paddingTop: 10 }}
-                  formatter={() => (
-                    <span className="text-muted-foreground text-sm">
-                      Class Average
-                    </span>
-                  )}
+                <Legend wrapperStyle={{ paddingTop: 10 }} />
+                <Bar
+                  dataKey="maxScore"
+                  name="Max Score"
+                  fill="hsl(var(--primary))"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={30}
                 />
                 <Bar
                   dataKey="average"
                   name="Class Average"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={50}
+                  maxBarSize={30}
                 >
                   {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={getBarColor(entry.average)} />
                   ))}
                 </Bar>
+                <Bar
+                  dataKey="minScore"
+                  name="Min Score"
+                  fill="hsl(var(--destructive))"
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={30}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
