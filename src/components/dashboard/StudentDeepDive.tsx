@@ -424,49 +424,6 @@ export function StudentDeepDive({ student, classStudents }: StudentDeepDiveProps
         </motion.div>
       </div>
 
-      {/* Personalized Recommendations */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <Card className="shadow-card border-0 rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              Personalized Study Recommendations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {weaknesses.slice(0, 3).map((topic, index) => (
-                <div
-                  key={topic.id}
-                  className="p-4 bg-muted/50 rounded-xl"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl font-bold text-primary">{index + 1}</span>
-                    <div>
-                      <p className="font-medium text-sm">{topic.name}</p>
-                      <p className="text-xs text-muted-foreground">{topic.subjectName}</p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Current: {topic.percentage.toFixed(0)}% → Target: 60%+
-                  </p>
-                </div>
-              ))}
-              {weaknesses.length === 0 && (
-                <div className="col-span-full text-center py-4">
-                  <p className="text-muted-foreground">
-                    🎉 This student is performing well across all topics! Consider advanced enrichment activities.
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
     </div>
   );
 }
