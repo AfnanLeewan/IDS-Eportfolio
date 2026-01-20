@@ -3,6 +3,7 @@ import { Award, TrendingUp, Target, BookOpen } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { SubjectRadarChart } from "./SubjectRadarChart";
 import { ScoreBreakdown } from "./ScoreBreakdown";
+import { SkillProfileComparison } from "./SkillProfileComparison";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
@@ -203,6 +204,9 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Skill Profile Comparison Chart */}
+      <SkillProfileComparison student={student} />
 
       {/* Detailed Breakdown */}
       <ScoreBreakdown student={student} />
