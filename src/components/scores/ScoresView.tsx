@@ -7,11 +7,8 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  Edit2,
   Trash2,
-  Plus,
-  Check,
-  X
+  Plus
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -597,40 +594,22 @@ function SubjectScoreTable({
                             {getTrendIcon(subjectScore.percentage, subjectAverage)}
                           </TableCell>
                           <TableCell className="text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onEdit(student, subject);
-                                    }}
-                                  >
-                                    <Edit2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Edit Scores</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onDelete(student, subject);
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Delete Scores</TooltipContent>
-                              </Tooltip>
-                            </div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDelete(student, subject);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete Scores</TooltipContent>
+                            </Tooltip>
                           </TableCell>
                         </TableRow>
                       );
