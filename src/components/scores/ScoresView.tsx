@@ -47,6 +47,7 @@ import {
 } from "@/lib/mockData";
 import { ScoreEditDialog } from "./ScoreEditDialog";
 import { AddStudentScoreDialog } from "./AddStudentScoreDialog";
+import { SubTopicComparisonChart } from "./SubTopicComparisonChart";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -323,6 +324,9 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
           </CardContent>
         </Card>
       </div>
+
+      {/* Sub-topic Comparison Chart */}
+      <SubTopicComparisonChart students={filteredStudents} />
 
       {/* Scores by Subject */}
       <TooltipProvider>
