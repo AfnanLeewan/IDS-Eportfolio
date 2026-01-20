@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   ChevronDown, 
@@ -9,7 +9,9 @@ import {
   Minus,
   Edit2,
   Trash2,
-  Plus
+  Plus,
+  Check,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -154,6 +156,22 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
       })
     );
     toast.success("Scores updated successfully");
+  };
+
+  const handleInlineScoreUpdate = (studentId: string, subTopicId: string, newScore: number) => {
+    setStudents((prev) =>
+      prev.map((student) => {
+        if (student.id !== studentId) return student;
+        const updatedScores = student.scores.map((score) => {
+          if (score.subTopicId === subTopicId) {
+            return { ...score, score: newScore };
+          }
+          return score;
+        });
+        return { ...student, scores: updatedScores };
+      })
+    );
+    toast.success("Score updated");
   };
 
   const handleAddStudent = (newStudent: {
@@ -324,6 +342,7 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
             onEdit={handleEditClick}
             onDelete={handleDeleteClick}
             onAdd={handleAddClick}
+            onInlineScoreUpdate={handleInlineScoreUpdate}
           />
         ))}
       </TooltipProvider>
@@ -375,6 +394,7 @@ interface SubjectScoreTableProps {
   onEdit: (student: Student, subject: Subject) => void;
   onDelete: (student: Student, subject: Subject) => void;
   onAdd: (subject: Subject) => void;
+  onInlineScoreUpdate: (studentId: string, subTopicId: string, newScore: number) => void;
 }
 
 function SubjectScoreTable({
@@ -388,10 +408,48 @@ function SubjectScoreTable({
   onEdit,
   onDelete,
   onAdd,
+  onInlineScoreUpdate,
 }: SubjectScoreTableProps) {
+  const [editingCell, setEditingCell] = useState<{ studentId: string; subTopicId: string } | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const subjectAverage = students.reduce((acc, s) => {
     return acc + getSubjectScore(s, subject.id).percentage;
   }, 0) / students.length || 0;
+
+  useEffect(() => {
+    if (editingCell && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingCell]);
+
+  const handleDoubleClick = (studentId: string, subTopicId: string, currentScore: number) => {
+    setEditingCell({ studentId, subTopicId });
+    setEditValue(currentScore.toString());
+  };
+
+  const handleSaveInline = (maxScore: number) => {
+    if (!editingCell) return;
+    const numValue = parseInt(editValue) || 0;
+    const clampedValue = Math.max(0, Math.min(numValue, maxScore));
+    onInlineScoreUpdate(editingCell.studentId, editingCell.subTopicId, clampedValue);
+    setEditingCell(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCell(null);
+    setEditValue("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, maxScore: number) => {
+    if (e.key === "Enter") {
+      handleSaveInline(maxScore);
+    } else if (e.key === "Escape") {
+      handleCancelEdit();
+    }
+  };
 
   return (
     <motion.div
@@ -490,12 +548,40 @@ function SubjectScoreTable({
                             );
                             const score = scoreEntry?.score || 0;
                             const percentage = (score / subTopic.maxScore) * 100;
+                            const isEditing = editingCell?.studentId === student.id && editingCell?.subTopicId === subTopic.id;
                             
                             return (
-                              <TableCell key={subTopic.id} className="text-center">
-                                <span className={cn("font-medium", getScoreColor(percentage))}>
-                                  {score}
-                                </span>
+                              <TableCell key={subTopic.id} className="text-center p-1">
+                                {isEditing ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <input
+                                      ref={inputRef}
+                                      type="number"
+                                      min={0}
+                                      max={subTopic.maxScore}
+                                      value={editValue}
+                                      onChange={(e) => setEditValue(e.target.value)}
+                                      onKeyDown={(e) => handleKeyDown(e, subTopic.maxScore)}
+                                      onBlur={() => handleSaveInline(subTopic.maxScore)}
+                                      className="w-14 h-7 text-center text-sm border border-primary rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                    />
+                                  </div>
+                                ) : (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span 
+                                        className={cn(
+                                          "font-medium cursor-pointer px-2 py-1 rounded hover:bg-muted transition-colors inline-block min-w-[32px]",
+                                          getScoreColor(percentage)
+                                        )}
+                                        onDoubleClick={() => handleDoubleClick(student.id, subTopic.id, score)}
+                                      >
+                                        {score}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Double-click to edit</TooltipContent>
+                                  </Tooltip>
+                                )}
                               </TableCell>
                             );
                           })}
