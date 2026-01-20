@@ -43,6 +43,7 @@ import { SubTopicHeatmap } from "./SubTopicHeatmap";
 import { SubTopicGapChart } from "./SubTopicGapChart";
 import { SubTopicScoreChart } from "./SubTopicScoreChart";
 import { StudentDeepDive } from "./StudentDeepDive";
+import { SubTopicComparisonChart } from "@/components/scores/SubTopicComparisonChart";
 
 // Additional exam programs for future use
 const examPrograms = [
@@ -463,6 +464,9 @@ export function AnalyticsDashboard() {
               selectedSubject={selectedSubject}
               onStudentClick={handleStudentClick}
             />
+
+            {/* Sub-topic Score Comparison Chart */}
+            <SubTopicComparisonChart students={filteredStudents} />
 
             {/* Sub-topic Gap Analysis */}
             <SubTopicGapChart
