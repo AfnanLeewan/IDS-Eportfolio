@@ -1,20 +1,61 @@
 import { motion } from "framer-motion";
-import { GraduationCap, User, Users, Search, Bell, ChevronDown, Settings, LayoutDashboard, FileSpreadsheet } from "lucide-react";
+import { GraduationCap, User, Users, Search, Bell, ChevronDown, Settings, LayoutDashboard, FileSpreadsheet, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-export type UserRole = "teacher" | "student";
-export type ViewMode = "dashboard" | "management" | "scores";
+export type ViewMode = "dashboard" | "management" | "scores" | "users";
 
 interface HeaderProps {
-  currentRole: UserRole;
-  onRoleChange: (role: UserRole) => void;
-  studentName?: string;
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
 }
 
-export function Header({ currentRole, onRoleChange, studentName, viewMode = "dashboard", onViewModeChange }: HeaderProps) {
+export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps) {
+  const { profile, role, signOut, isAdmin, isTeacher } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const getRoleLabel = () => {
+    switch (role) {
+      case 'admin': return 'ผู้ดูแลระบบ';
+      case 'teacher': return 'ครู';
+      case 'student': return 'นักเรียน';
+      default: return 'ผู้ใช้';
+    }
+  };
+
+  const getRoleIcon = () => {
+    switch (role) {
+      case 'admin': return <Shield className="h-4 w-4" />;
+      case 'teacher': return <Users className="h-4 w-4" />;
+      case 'student': return <User className="h-4 w-4" />;
+      default: return <User className="h-4 w-4" />;
+    }
+  };
+
+  const getInitials = () => {
+    if (profile?.full_name) {
+      return profile.full_name.charAt(0).toUpperCase();
+    }
+    if (profile?.email) {
+      return profile.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -46,8 +87,8 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
         </div>
 
         <div className="flex items-center gap-4">
-          {/* View Mode Toggle (Teacher Only) */}
-          {currentRole === "teacher" && onViewModeChange && (
+          {/* View Mode Toggle (Admin and Teacher) */}
+          {(isAdmin || isTeacher) && onViewModeChange && (
             <div className="flex rounded-xl bg-muted p-1">
               <Button
                 variant="ghost"
@@ -91,39 +132,29 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">จัดการ</span>
               </Button>
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onViewModeChange("users")}
+                  className={cn(
+                    "relative gap-2 px-3 rounded-lg transition-all",
+                    viewMode === "users"
+                      ? "bg-card shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                  )}
+                >
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">ผู้ใช้</span>
+                </Button>
+              )}
             </div>
           )}
 
-          {/* Role Toggle */}
-          <div className="flex rounded-xl bg-muted p-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onRoleChange("teacher")}
-              className={cn(
-                "relative gap-2 px-4 rounded-lg transition-all",
-                currentRole === "teacher"
-                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary hover:text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-transparent"
-              )}
-            >
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">ครู</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onRoleChange("student")}
-              className={cn(
-                "relative gap-2 px-4 rounded-lg transition-all",
-                currentRole === "student"
-                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary hover:text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-transparent"
-              )}
-            >
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">นักเรียน</span>
-            </Button>
+          {/* Role Badge */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/50">
+            {getRoleIcon()}
+            <span className="text-sm font-medium">{getRoleLabel()}</span>
           </div>
 
           {/* Notifications */}
@@ -134,23 +165,42 @@ export function Header({ currentRole, onRoleChange, studentName, viewMode = "das
             </span>
           </Button>
 
-          {/* User Info */}
-          <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2 cursor-pointer hover:bg-muted transition-colors">
-            <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center">
-              <span className="text-xs font-medium text-primary-foreground">
-                {currentRole === "teacher" ? "T" : "S"}
-              </span>
-            </div>
-            <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-foreground">
-                {currentRole === "teacher" ? "ครูผู้ดูแล" : studentName || "นักเรียน"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {currentRole === "teacher" ? "เข้าถึงทั้งหมด" : "ดูอย่างเดียว"}
-              </p>
-            </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
-          </div>
+          {/* User Info with Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2 cursor-pointer hover:bg-muted transition-colors">
+                <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Avatar" className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-medium text-primary-foreground">
+                      {getInitials()}
+                    </span>
+                  )}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-medium text-foreground">
+                    {profile?.full_name || profile?.email || 'ผู้ใช้'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {getRoleLabel()}
+                  </p>
+                </div>
+                <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium">{profile?.full_name || 'ผู้ใช้'}</p>
+                <p className="text-xs text-muted-foreground">{profile?.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                ออกจากระบบ
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </motion.header>
