@@ -489,17 +489,12 @@ function SubjectScoreTable({
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <Badge className={cn("rounded-full", getScoreBadge(subjectAverage).className)}>
-                    {getScoreBadge(subjectAverage).label}
-                  </Badge>
-                  <ChevronDown
-                    className={cn(
-                      "h-5 w-5 text-muted-foreground transition-transform",
-                      isExpanded && "rotate-180"
-                    )}
-                  />
-                </div>
+                <ChevronDown
+                  className={cn(
+                    "h-5 w-5 text-muted-foreground transition-transform",
+                    isExpanded && "rotate-180"
+                  )}
+                />
               </div>
             </CardHeader>
           </CollapsibleTrigger>
