@@ -91,16 +91,16 @@ export function SubTopicComparisonChart({
         <div className="bg-background border border-border rounded-lg shadow-lg p-3">
           <p className="font-medium text-foreground">{data.fullName}</p>
           <p className="text-sm text-muted-foreground">
-            Average: <span className="font-semibold text-foreground">{data.average}%</span>
+            เฉลี่ย: <span className="font-semibold text-foreground">{data.average}%</span>
           </p>
           <p className="text-sm text-muted-foreground">
-            Max: <span className="font-semibold text-primary">{data.maxScore}%</span>
+            สูงสุด: <span className="font-semibold text-primary">{data.maxScore}%</span>
           </p>
           <p className="text-sm text-muted-foreground">
-            Min: <span className="font-semibold text-destructive">{data.minScore}%</span>
+            ต่ำสุด: <span className="font-semibold text-destructive">{data.minScore}%</span>
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            {data.studentCount} students
+            {data.studentCount} นักเรียน
           </p>
         </div>
       );
@@ -122,15 +122,15 @@ export function SubTopicComparisonChart({
               <BarChart3 className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-lg">Sub-topic Score Comparison</CardTitle>
+              <CardTitle className="text-lg">เปรียบเทียบคะแนนหัวข้อย่อย</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Average scores by sub-topic for selected subject
+                คะแนนเฉลี่ยแยกตามหัวข้อย่อยของวิชาที่เลือก
               </p>
             </div>
           </div>
           <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
             <SelectTrigger className="w-[180px] rounded-xl">
-              <SelectValue placeholder="Select Subject" />
+              <SelectValue placeholder="เลือกวิชา" />
             </SelectTrigger>
             <SelectContent>
               {subjects.map((subject) => (
@@ -167,14 +167,14 @@ export function SubTopicComparisonChart({
                 <Legend wrapperStyle={{ paddingTop: 10 }} />
                 <Bar
                   dataKey="maxScore"
-                  name="Max Score"
+                  name="คะแนนสูงสุด"
                   fill="hsl(var(--primary))"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={30}
                 />
                 <Bar
                   dataKey="average"
-                  name="Class Average"
+                  name="ค่าเฉลี่ยห้อง"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={30}
                 >
@@ -184,7 +184,7 @@ export function SubTopicComparisonChart({
                 </Bar>
                 <Bar
                   dataKey="minScore"
-                  name="Min Score"
+                  name="คะแนนต่ำสุด"
                   fill="hsl(var(--destructive))"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={30}

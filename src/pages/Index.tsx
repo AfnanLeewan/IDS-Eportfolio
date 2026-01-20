@@ -83,9 +83,9 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border/50 bg-card/80 backdrop-blur-sm py-6">
         <div className="container text-center text-sm text-muted-foreground">
-          <p>EduAssess Platform • Pre-A-Level Analytics System</p>
+          <p>แพลตฟอร์ม EduAssess • ระบบวิเคราะห์ผลสอบ Pre-A-Level</p>
           <p className="mt-1 text-xs">
-            Demo Mode — Toggle between Teacher and Student views above
+            โหมดทดลอง — สลับระหว่างมุมมองครูและนักเรียนด้านบน
           </p>
         </div>
       </footer>

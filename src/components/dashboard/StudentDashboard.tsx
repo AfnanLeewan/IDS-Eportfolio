@@ -33,24 +33,24 @@ interface StudentDashboardProps {
 const mockAnnouncements = [
   {
     id: "1",
-    title: "New Biology Scores Posted",
-    message: "Your Cell Biology and Genetics scores have been updated. Check your results!",
+    title: "ประกาศคะแนนวิชาชีววิทยา",
+    message: "คะแนนหัวข้อ Cell Biology และ Genetics ได้รับการอัปเดตแล้ว ตรวจสอบผลได้เลย!",
     timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
     isNew: true,
     subject: "Biology",
   },
   {
     id: "2",
-    title: "Mathematics Assessment Complete",
-    message: "Algebra and Calculus sub-topic scores are now available for review.",
+    title: "การประเมินวิชาคณิตศาสตร์เสร็จสิ้น",
+    message: "คะแนนหัวข้อย่อย Algebra และ Calculus พร้อมให้ตรวจสอบแล้ว",
     timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
     isNew: true,
     subject: "Mathematics",
   },
   {
     id: "3",
-    title: "Physics Practical Scores Added",
-    message: "Your Mechanics practical exam scores have been recorded.",
+    title: "เพิ่มคะแนนปฏิบัติวิชาฟิสิกส์",
+    message: "คะแนนสอบปฏิบัติหัวข้อ Mechanics ได้รับการบันทึกแล้ว",
     timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
     isNew: false,
     subject: "Physics",
@@ -63,10 +63,10 @@ const formatTimeAgo = (date: Date) => {
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffHours < 1) return "Just now";
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  return `${diffDays} days ago`;
+  if (diffHours < 1) return "เมื่อสักครู่";
+  if (diffHours < 24) return `${diffHours} ชม. ที่แล้ว`;
+  if (diffDays === 1) return "เมื่อวาน";
+  return `${diffDays} วันที่แล้ว`;
 };
 
 export function StudentDashboard({ student }: StudentDashboardProps) {
@@ -139,10 +139,10 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
                 <Bell className="h-4 w-4 text-primary" />
               </div>
               <h3 className="font-semibold text-foreground">
-                Announcements
+                ประกาศ
                 {newAnnouncementsCount > 0 && (
                   <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
-                    {newAnnouncementsCount} new
+                    {newAnnouncementsCount} ใหม่
                   </span>
                 )}
               </h3>
@@ -215,20 +215,20 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Welcome back, {student.name}!</h2>
+            <h2 className="text-2xl font-bold">ยินดีต้อนรับ, {student.name}!</h2>
             <p className="text-primary-foreground/80">
-              Student ID: {student.id} • Class: {classStudents[0] && classStudents[0].classId.toUpperCase().replace("-", "/")}
+              รหัสนักเรียน: {student.id} • ห้อง: {classStudents[0] && classStudents[0].classId.toUpperCase().replace("-", "/")}
             </p>
           </div>
           <div className="flex gap-4">
             <div className="text-center">
               <p className="text-3xl font-bold">{totalScore.percentage.toFixed(0)}%</p>
-              <p className="text-xs text-primary-foreground/70">Overall Score</p>
+              <p className="text-xs text-primary-foreground/70">คะแนนรวม</p>
             </div>
             <div className="h-12 w-px bg-primary-foreground/20" />
             <div className="text-center">
               <p className="text-3xl font-bold">#{classRank}</p>
-              <p className="text-xs text-primary-foreground/70">Class Rank</p>
+              <p className="text-xs text-primary-foreground/70">อันดับในห้อง</p>
             </div>
           </div>
         </div>
@@ -237,30 +237,30 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Score"
+          title="คะแนนรวม"
           value={`${totalScore.score}/${totalScore.maxScore}`}
-          subtitle={`${totalScore.percentage.toFixed(1)}% overall`}
+          subtitle={`${totalScore.percentage.toFixed(1)}% โดยรวม`}
           icon={Award}
           variant="primary"
         />
         <StatCard
-          title="Percentile"
-          value={`Top ${100 - parseInt(percentile)}%`}
-          subtitle={`Better than ${percentile}% of students`}
+          title="เปอร์เซ็นไทล์"
+          value={`ท็อป ${100 - parseInt(percentile)}%`}
+          subtitle={`ดีกว่า ${percentile}% ของนักเรียน`}
           icon={TrendingUp}
           variant="success"
         />
         <StatCard
-          title="Class Rank"
+          title="อันดับในห้อง"
           value={`#${classRank}`}
-          subtitle={`Out of ${classStudents.length} students`}
+          subtitle={`จาก ${classStudents.length} คน`}
           icon={Target}
           variant="default"
         />
         <StatCard
-          title="Subjects"
+          title="จำนวนวิชา"
           value={preALevelProgram.subjects.length}
-          subtitle="Pre-A-Level Program"
+          subtitle="โปรแกรม Pre-A-Level"
           icon={BookOpen}
           variant="default"
         />
@@ -274,7 +274,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
         <Card className="shadow-card border-0 rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-semibold">
-              Performance Analysis
+              การวิเคราะห์ผลการเรียน
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -282,7 +282,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
             <div>
               <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-success">
                 <TrendingUp className="h-4 w-4" />
-                Top Performing Subjects
+                วิชาที่ทำได้ดีที่สุด
               </h4>
               <div className="space-y-2">
                 {strengths.map((subject, index) => (
@@ -311,7 +311,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
             <div>
               <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-warning">
                 <Target className="h-4 w-4" />
-                Areas for Improvement
+                วิชาที่ควรปรับปรุง
               </h4>
               <div className="space-y-2">
                 {weaknesses.map((subject, index) => (
@@ -359,10 +359,10 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
       {/* Sub-topic Score Comparison with Subject Filter */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Sub-topic Analysis</h3>
+          <h3 className="text-lg font-semibold">การวิเคราะห์หัวข้อย่อย</h3>
           <Select value={selectedSubject} onValueChange={setSelectedSubject}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select Subject" />
+              <SelectValue placeholder="เลือกวิชา" />
             </SelectTrigger>
             <SelectContent>
               {preALevelProgram.subjects.map((subject) => (

@@ -152,7 +152,7 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
         return { ...student, scores: updatedScores };
       })
     );
-    toast.success("Scores updated successfully");
+    toast.success("อัปเดตคะแนนเรียบร้อยแล้ว");
   };
 
   const handleInlineScoreUpdate = (studentId: string, subTopicId: string, newScore: number) => {
@@ -168,7 +168,7 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
         return { ...student, scores: updatedScores };
       })
     );
-    toast.success("Score updated");
+    toast.success("อัปเดตคะแนนแล้ว");
   };
 
   const handleAddStudent = (newStudent: {
@@ -204,7 +204,7 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
       };
       setStudents((prev) => [...prev, fullStudent]);
     }
-    toast.success("Student added successfully");
+    toast.success("เพิ่มนักเรียนเรียบร้อยแล้ว");
   };
 
   const handleDeleteStudent = () => {
@@ -225,7 +225,7 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
     
     setDeleteDialogOpen(false);
     setStudentToDelete(null);
-    toast.success("Student scores deleted successfully");
+    toast.success("ลบคะแนนนักเรียนเรียบร้อยแล้ว");
   };
 
   return (
@@ -233,14 +233,14 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Score Report</h2>
+          <h2 className="text-2xl font-bold text-foreground">รายงานคะแนน</h2>
           <p className="text-muted-foreground">
-            View detailed scores for all students by class and subject
+            ดูคะแนนละเอียดของนักเรียนทุกคน แยกตามห้องเรียนและวิชา
           </p>
         </div>
         <Button className="gap-2 gradient-primary text-primary-foreground rounded-xl">
           <Download className="h-4 w-4" />
-          Export Report
+          ส่งออกรายงาน
         </Button>
       </div>
 
@@ -252,7 +252,7 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search by student name or ID..."
+                placeholder="ค้นหาชื่อหรือรหัสนักเรียน..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-xl border border-border bg-muted/50 py-2.5 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
@@ -261,10 +261,10 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
             <div className="flex gap-3">
               <Select value={selectedClass} onValueChange={setSelectedClass}>
                 <SelectTrigger className="w-[160px] rounded-xl">
-                  <SelectValue placeholder="Select Class" />
+                  <SelectValue placeholder="เลือกห้องเรียน" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Classes</SelectItem>
+                  <SelectItem value="all">ทุกห้องเรียน</SelectItem>
                   {classGroups.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>
                       {cls.name}
@@ -274,10 +274,10 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
               </Select>
               <Select value={selectedSubject} onValueChange={setSelectedSubject}>
                 <SelectTrigger className="w-[180px] rounded-xl">
-                  <SelectValue placeholder="Select Subject" />
+                  <SelectValue placeholder="เลือกวิชา" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
+                  <SelectItem value="all">ทุกวิชา</SelectItem>
                   {preALevelProgram.subjects.map((subject) => (
                     <SelectItem key={subject.id} value={subject.id}>
                       {subject.name}
@@ -294,13 +294,13 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="border-0 shadow-card">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total Students</p>
+            <p className="text-sm text-muted-foreground">จำนวนนักเรียน</p>
             <p className="text-3xl font-bold text-foreground">{filteredStudents.length}</p>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-card">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Class Average</p>
+            <p className="text-sm text-muted-foreground">ค่าเฉลี่ยห้อง</p>
             <p className="text-3xl font-bold text-emerald-600">
               {(filteredStudents.reduce((acc, s) => acc + getTotalScore(s).percentage, 0) / filteredStudents.length || 0).toFixed(1)}%
             </p>
@@ -308,7 +308,7 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
         </Card>
         <Card className="border-0 shadow-card">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Highest Score</p>
+            <p className="text-sm text-muted-foreground">คะแนนสูงสุด</p>
             <p className="text-3xl font-bold text-blue-600">
               {Math.max(...filteredStudents.map(s => getTotalScore(s).percentage)).toFixed(1)}%
             </p>
@@ -316,7 +316,7 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
         </Card>
         <Card className="border-0 shadow-card">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Lowest Score</p>
+            <p className="text-sm text-muted-foreground">คะแนนต่ำสุด</p>
             <p className="text-3xl font-bold text-amber-600">
               {Math.min(...filteredStudents.map(s => getTotalScore(s).percentage)).toFixed(1)}%
             </p>
@@ -363,15 +363,15 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Student Scores</AlertDialogTitle>
+            <AlertDialogTitle>ลบคะแนนนักเรียน</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {studentToDelete?.student.name}'s scores for {studentToDelete?.subject.name}? This action cannot be undone.
+              คุณแน่ใจหรือไม่ว่าต้องการลบคะแนนของ {studentToDelete?.student.name} ในวิชา {studentToDelete?.subject.name}? การกระทำนี้ไม่สามารถย้อนกลับได้
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteStudent} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+              ลบ
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -485,7 +485,7 @@ function SubjectScoreTable({
                   <div>
                     <CardTitle className="text-lg">{subject.name}</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {subject.subTopics.length} sub-topics • Average: {subjectAverage.toFixed(1)}%
+                      {subject.subTopics.length} หัวข้อย่อย • ค่าเฉลี่ย: {subjectAverage.toFixed(1)}%
                     </p>
                   </div>
                 </div>

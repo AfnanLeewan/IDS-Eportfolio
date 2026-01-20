@@ -153,17 +153,17 @@ export function AnalyticsDashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <Filter className="h-5 w-5 text-primary" />
-              Analysis Filters
+              ตัวกรองการวิเคราะห์
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Program Select */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Program</label>
+                <label className="text-sm font-medium text-muted-foreground">โปรแกรม</label>
                 <Select value={selectedProgram} onValueChange={setSelectedProgram}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Program" />
+                    <SelectValue placeholder="เลือกโปรแกรม" />
                   </SelectTrigger>
                   <SelectContent>
                     {examPrograms.map((program) => (
@@ -177,13 +177,13 @@ export function AnalyticsDashboard() {
 
               {/* Class Select */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Class</label>
+                <label className="text-sm font-medium text-muted-foreground">ห้องเรียน</label>
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Class" />
+                    <SelectValue placeholder="เลือกห้องเรียน" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Classes</SelectItem>
+                    <SelectItem value="all">ทุกห้องเรียน</SelectItem>
                     {classGroups.map((classGroup) => (
                       <SelectItem key={classGroup.id} value={classGroup.id}>
                         {classGroup.name}
@@ -195,13 +195,13 @@ export function AnalyticsDashboard() {
 
               {/* Subject Select */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Subject</label>
+                <label className="text-sm font-medium text-muted-foreground">วิชา</label>
                 <Select value={selectedSubject} onValueChange={setSelectedSubject}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Subject" />
+                    <SelectValue placeholder="เลือกวิชา" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Subjects (Overview)</SelectItem>
+                    <SelectItem value="all">ทุกวิชา (ภาพรวม)</SelectItem>
                     {preALevelProgram.subjects.map((subject) => (
                       <SelectItem key={subject.id} value={subject.id}>
                         {subject.name}
@@ -213,7 +213,7 @@ export function AnalyticsDashboard() {
 
               {/* View Level Toggle */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-muted-foreground">Analysis Level</label>
+                <label className="text-sm font-medium text-muted-foreground">ระดับการวิเคราะห์</label>
                 <div className="flex gap-1">
                   <Button
                     variant={activeLevel === 1 ? "default" : "outline"}
@@ -221,7 +221,7 @@ export function AnalyticsDashboard() {
                     className="flex-1"
                     onClick={() => { setActiveLevel(1); setSelectedStudent(null); }}
                   >
-                    Overview
+                    ภาพรวม
                   </Button>
                   <Button
                     variant={activeLevel === 2 ? "default" : "outline"}
@@ -229,7 +229,7 @@ export function AnalyticsDashboard() {
                     className="flex-1"
                     onClick={() => { setActiveLevel(2); setSelectedStudent(null); }}
                   >
-                    Sub-topic
+                    หัวข้อย่อย
                   </Button>
                   <Button
                     variant={activeLevel === 3 ? "default" : "outline"}
@@ -238,7 +238,7 @@ export function AnalyticsDashboard() {
                     onClick={() => setActiveLevel(3)}
                     disabled={!selectedStudent}
                   >
-                    Student
+                    นักเรียน
                   </Button>
                 </div>
               </div>
@@ -263,11 +263,11 @@ export function AnalyticsDashboard() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Class Average</p>
+                      <p className="text-sm font-medium text-muted-foreground">ค่าเฉลี่ยห้องเรียน</p>
                       <div className="flex items-baseline gap-2 mt-1">
                         <span className="text-3xl font-bold">{classAverage.toFixed(1)}%</span>
                         <span className="text-sm text-muted-foreground">
-                          vs {schoolAverage.toFixed(1)}% school
+                          เทียบกับ {schoolAverage.toFixed(1)}% ทั้งโรงเรียน
                         </span>
                       </div>
                     </div>
@@ -282,7 +282,7 @@ export function AnalyticsDashboard() {
                       <TrendingDown className="h-4 w-4 text-destructive" />
                     )}
                     <span className={`text-sm ${classAverage >= schoolAverage ? "text-success" : "text-destructive"}`}>
-                      {Math.abs(classAverage - schoolAverage).toFixed(1)}% {classAverage >= schoolAverage ? "above" : "below"} average
+                      {Math.abs(classAverage - schoolAverage).toFixed(1)}% {classAverage >= schoolAverage ? "สูงกว่า" : "ต่ำกว่า"}ค่าเฉลี่ย
                     </span>
                   </div>
                 </CardContent>
@@ -292,14 +292,14 @@ export function AnalyticsDashboard() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Top 10% Students</p>
+                      <p className="text-sm font-medium text-muted-foreground">นักเรียนกลุ่มท็อป 10%</p>
                       <span className="text-3xl font-bold text-success">{top10PercentCount}</span>
                     </div>
                     <div className="h-12 w-12 rounded-xl bg-success/10 flex items-center justify-center">
                       <TrendingUp className="h-6 w-6 text-success" />
                     </div>
                   </div>
-                  <p className="mt-3 text-sm text-muted-foreground">High performers in class</p>
+                  <p className="mt-3 text-sm text-muted-foreground">ผู้มีผลการเรียนสูงในห้อง</p>
                 </CardContent>
               </Card>
 
@@ -307,14 +307,14 @@ export function AnalyticsDashboard() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">At-Risk Students</p>
+                      <p className="text-sm font-medium text-muted-foreground">นักเรียนที่ต้องดูแล</p>
                       <span className="text-3xl font-bold text-destructive">{bottom10PercentCount}</span>
                     </div>
                     <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center">
                       <AlertTriangle className="h-6 w-6 text-destructive" />
                     </div>
                   </div>
-                  <p className="mt-3 text-sm text-muted-foreground">Below 50% threshold</p>
+                  <p className="mt-3 text-sm text-muted-foreground">ต่ำกว่าเกณฑ์ 50%</p>
                 </CardContent>
               </Card>
 
@@ -322,7 +322,7 @@ export function AnalyticsDashboard() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">Standard Deviation</p>
+                      <p className="text-sm font-medium text-muted-foreground">ค่าเบี่ยงเบนมาตรฐาน</p>
                       <span className="text-3xl font-bold">{standardDeviation.toFixed(1)}</span>
                     </div>
                     <div className="h-12 w-12 rounded-xl bg-chart-6/10 flex items-center justify-center">
@@ -330,7 +330,7 @@ export function AnalyticsDashboard() {
                     </div>
                   </div>
                   <p className="mt-3 text-sm text-muted-foreground">
-                    {standardDeviation > 15 ? "High spread - mixed abilities" : "Low spread - consistent levels"}
+                    {standardDeviation > 15 ? "กระจายสูง - ความสามารถหลากหลาย" : "กระจายต่ำ - ระดับใกล้เคียงกัน"}
                   </p>
                 </CardContent>
               </Card>
@@ -367,7 +367,7 @@ export function AnalyticsDashboard() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-success" />
-                    Top Performers
+                    นักเรียนคะแนนสูงสุด
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -409,7 +409,7 @@ export function AnalyticsDashboard() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg font-semibold flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-warning" />
-                    At-Risk Students (Bottom 10%)
+                    นักเรียนที่ต้องดูแล (10% ล่างสุด)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -494,7 +494,7 @@ export function AnalyticsDashboard() {
                   onClick={handleBackFromStudent}
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Sub-topic Analysis
+                  กลับไปวิเคราะห์หัวข้อย่อย
                 </Button>
                 <StudentDeepDive
                   student={selectedStudent}
@@ -505,9 +505,9 @@ export function AnalyticsDashboard() {
               <Card className="shadow-card border-0 rounded-2xl">
                 <CardContent className="py-12 text-center">
                   <User className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Select a Student</h3>
+                  <h3 className="text-lg font-semibold mb-2">เลือกนักเรียน</h3>
                   <p className="text-muted-foreground">
-                    Click on a student from the Overview or Sub-topic Analysis to see their detailed performance.
+                    คลิกที่นักเรียนจากหน้าภาพรวมหรือการวิเคราะห์หัวข้อย่อยเพื่อดูผลการเรียนโดยละเอียด
                   </p>
                 </CardContent>
               </Card>
