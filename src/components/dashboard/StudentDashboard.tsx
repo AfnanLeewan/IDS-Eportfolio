@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Award, TrendingUp, Target, BookOpen } from "lucide-react";
+import { Award, TrendingUp, Target, BookOpen, Bell, X } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
+import { Button } from "@/components/ui/button";
 import { SubjectRadarChart } from "./SubjectRadarChart";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import { SkillProfileComparison } from "./SkillProfileComparison";
@@ -28,8 +29,62 @@ interface StudentDashboardProps {
   student: Student;
 }
 
+// Mock announcements data - in real app, this would come from a backend
+const mockAnnouncements = [
+  {
+    id: "1",
+    title: "New Biology Scores Posted",
+    message: "Your Cell Biology and Genetics scores have been updated. Check your results!",
+    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+    isNew: true,
+    subject: "Biology",
+  },
+  {
+    id: "2",
+    title: "Mathematics Assessment Complete",
+    message: "Algebra and Calculus sub-topic scores are now available for review.",
+    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+    isNew: true,
+    subject: "Mathematics",
+  },
+  {
+    id: "3",
+    title: "Physics Practical Scores Added",
+    message: "Your Mechanics practical exam scores have been recorded.",
+    timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    isNew: false,
+    subject: "Physics",
+  },
+];
+
+const formatTimeAgo = (date: Date) => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffHours < 1) return "Just now";
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return "Yesterday";
+  return `${diffDays} days ago`;
+};
+
 export function StudentDashboard({ student }: StudentDashboardProps) {
   const [selectedSubject, setSelectedSubject] = useState(preALevelProgram.subjects[0].id);
+  const [announcements, setAnnouncements] = useState(mockAnnouncements);
+  const [showAnnouncements, setShowAnnouncements] = useState(true);
+
+  const newAnnouncementsCount = announcements.filter((a) => a.isNew).length;
+
+  const dismissAnnouncement = (id: string) => {
+    setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const markAsRead = (id: string) => {
+    setAnnouncements((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, isNew: false } : a))
+    );
+  };
   const totalScore = getTotalScore(student);
   
   const selectedSubjectData = preALevelProgram.subjects.find(s => s.id === selectedSubject);
@@ -70,7 +125,88 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
   const weaknesses = sortedSubjects.slice(-3).reverse();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Announcements Box */}
+      {showAnnouncements && announcements.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                <Bell className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="font-semibold text-foreground">
+                Announcements
+                {newAnnouncementsCount > 0 && (
+                  <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
+                    {newAnnouncementsCount} new
+                  </span>
+                )}
+              </h3>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowAnnouncements(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="space-y-2 max-h-[200px] overflow-y-auto">
+            {announcements.map((announcement, index) => (
+              <motion.div
+                key={announcement.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                className={`group relative rounded-xl p-3 transition-colors ${
+                  announcement.isNew
+                    ? "bg-background border border-primary/30 shadow-sm"
+                    : "bg-muted/50"
+                }`}
+                onClick={() => markAsRead(announcement.id)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {announcement.isNew && (
+                        <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                      )}
+                      <span className="font-medium text-sm text-foreground truncate">
+                        {announcement.title}
+                      </span>
+                      <span className="text-xs text-primary font-medium px-2 py-0.5 rounded-full bg-primary/10">
+                        {announcement.subject}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                      {announcement.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      {formatTimeAgo(announcement.timestamp)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismissAnnouncement(announcement.id);
+                    }}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
       {/* Welcome Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
