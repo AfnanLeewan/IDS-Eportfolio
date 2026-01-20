@@ -2,13 +2,16 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { 
   ChevronDown, 
-  Filter, 
   Download, 
   Search,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  Edit2,
+  Trash2,
+  Plus
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,16 +46,43 @@ import {
   Student,
   Subject,
 } from "@/lib/mockData";
+import { ScoreEditDialog } from "./ScoreEditDialog";
+import { AddStudentScoreDialog } from "./AddStudentScoreDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ScoresViewProps {
   students?: Student[];
 }
 
-export function ScoresView({ students = mockStudents }: ScoresViewProps) {
+export function ScoresView({ students: initialStudents = mockStudents }: ScoresViewProps) {
+  const [students, setStudents] = useState<Student[]>(initialStudents);
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
+  
+  // CRUD state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedSubjectForEdit, setSelectedSubjectForEdit] = useState<Subject | null>(null);
+  const [studentToDelete, setStudentToDelete] = useState<{ student: Student; subject: Subject } | null>(null);
 
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
@@ -93,6 +123,94 @@ export function ScoresView({ students = mockStudents }: ScoresViewProps) {
     if (diff > 5) return <TrendingUp className="h-4 w-4 text-emerald-500" />;
     if (diff < -5) return <TrendingDown className="h-4 w-4 text-red-500" />;
     return <Minus className="h-4 w-4 text-muted-foreground" />;
+  };
+
+  // CRUD handlers
+  const handleEditClick = (student: Student, subject: Subject) => {
+    setSelectedStudent(student);
+    setSelectedSubjectForEdit(subject);
+    setEditDialogOpen(true);
+  };
+
+  const handleAddClick = (subject: Subject) => {
+    setSelectedSubjectForEdit(subject);
+    setAddDialogOpen(true);
+  };
+
+  const handleDeleteClick = (student: Student, subject: Subject) => {
+    setStudentToDelete({ student, subject });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleSaveScores = (studentId: string, newScores: { subTopicId: string; score: number }[]) => {
+    setStudents((prev) =>
+      prev.map((student) => {
+        if (student.id !== studentId) return student;
+        const updatedScores = student.scores.map((score) => {
+          const newScore = newScores.find((ns) => ns.subTopicId === score.subTopicId);
+          return newScore ? { ...score, score: newScore.score } : score;
+        });
+        return { ...student, scores: updatedScores };
+      })
+    );
+    toast.success("Scores updated successfully");
+  };
+
+  const handleAddStudent = (newStudent: {
+    id: string;
+    name: string;
+    classId: string;
+    scores: { subTopicId: string; score: number }[];
+  }) => {
+    // Check if student already exists
+    const existingStudent = students.find((s) => s.id === newStudent.id);
+    if (existingStudent) {
+      // Add new scores to existing student
+      setStudents((prev) =>
+        prev.map((student) => {
+          if (student.id !== newStudent.id) return student;
+          const existingScoreIds = new Set(student.scores.map((s) => s.subTopicId));
+          const additionalScores = newStudent.scores.filter(
+            (ns) => !existingScoreIds.has(ns.subTopicId)
+          );
+          return {
+            ...student,
+            scores: [...student.scores, ...additionalScores],
+          };
+        })
+      );
+    } else {
+      // Create new student with scores
+      const fullStudent: Student = {
+        id: newStudent.id,
+        name: newStudent.name,
+        classId: newStudent.classId,
+        scores: newStudent.scores,
+      };
+      setStudents((prev) => [...prev, fullStudent]);
+    }
+    toast.success("Student added successfully");
+  };
+
+  const handleDeleteStudent = () => {
+    if (!studentToDelete) return;
+    const { student, subject } = studentToDelete;
+    
+    // Remove scores for this subject from the student
+    setStudents((prev) =>
+      prev.map((s) => {
+        if (s.id !== student.id) return s;
+        const subTopicIds = new Set(subject.subTopics.map((st) => st.id));
+        return {
+          ...s,
+          scores: s.scores.filter((score) => !subTopicIds.has(score.subTopicId)),
+        };
+      })
+    );
+    
+    setDeleteDialogOpen(false);
+    setStudentToDelete(null);
+    toast.success("Student scores deleted successfully");
   };
 
   return (
@@ -192,18 +310,56 @@ export function ScoresView({ students = mockStudents }: ScoresViewProps) {
       </div>
 
       {/* Scores by Subject */}
-      {subjects.map((subject) => (
-        <SubjectScoreTable
-          key={subject.id}
-          subject={subject}
-          students={filteredStudents}
-          isExpanded={expandedSubjects.includes(subject.id)}
-          onToggle={() => toggleSubject(subject.id)}
-          getScoreColor={getScoreColor}
-          getScoreBadge={getScoreBadge}
-          getTrendIcon={getTrendIcon}
-        />
-      ))}
+      <TooltipProvider>
+        {subjects.map((subject) => (
+          <SubjectScoreTable
+            key={subject.id}
+            subject={subject}
+            students={filteredStudents}
+            isExpanded={expandedSubjects.includes(subject.id)}
+            onToggle={() => toggleSubject(subject.id)}
+            getScoreColor={getScoreColor}
+            getScoreBadge={getScoreBadge}
+            getTrendIcon={getTrendIcon}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
+            onAdd={handleAddClick}
+          />
+        ))}
+      </TooltipProvider>
+
+      {/* CRUD Dialogs */}
+      <ScoreEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        student={selectedStudent}
+        subject={selectedSubjectForEdit}
+        onSave={handleSaveScores}
+      />
+
+      <AddStudentScoreDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        subject={selectedSubjectForEdit}
+        onAdd={handleAddStudent}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Student Scores</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {studentToDelete?.student.name}'s scores for {studentToDelete?.subject.name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteStudent} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -216,6 +372,9 @@ interface SubjectScoreTableProps {
   getScoreColor: (percentage: number) => string;
   getScoreBadge: (percentage: number) => { label: string; className: string };
   getTrendIcon: (studentScore: number, classAverage: number) => React.ReactNode;
+  onEdit: (student: Student, subject: Subject) => void;
+  onDelete: (student: Student, subject: Subject) => void;
+  onAdd: (subject: Subject) => void;
 }
 
 function SubjectScoreTable({
@@ -226,6 +385,9 @@ function SubjectScoreTable({
   getScoreColor,
   getScoreBadge,
   getTrendIcon,
+  onEdit,
+  onDelete,
+  onAdd,
 }: SubjectScoreTableProps) {
   const subjectAverage = students.reduce((acc, s) => {
     return acc + getSubjectScore(s, subject.id).percentage;
@@ -271,6 +433,20 @@ function SubjectScoreTable({
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent className="pt-0">
+              {/* Add Button */}
+              <div className="flex justify-end mb-4">
+                <Button
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAdd(subject);
+                  }}
+                  className="gap-2 gradient-primary text-primary-foreground"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Student
+                </Button>
+              </div>
               <div className="rounded-xl border border-border overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -291,6 +467,7 @@ function SubjectScoreTable({
                       <TableHead className="text-center font-semibold">Total</TableHead>
                       <TableHead className="text-center font-semibold">%</TableHead>
                       <TableHead className="text-center font-semibold">vs Avg</TableHead>
+                      <TableHead className="text-center font-semibold">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -332,6 +509,42 @@ function SubjectScoreTable({
                           </TableCell>
                           <TableCell className="text-center">
                             {getTrendIcon(subjectScore.percentage, subjectAverage)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onEdit(student, subject);
+                                    }}
+                                  >
+                                    <Edit2 className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit Scores</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDelete(student, subject);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete Scores</TooltipContent>
+                              </Tooltip>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
