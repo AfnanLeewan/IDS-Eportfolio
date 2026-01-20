@@ -1,4 +1,4 @@
-# 🎓 EduAssess - Pre-A-Level Assessment & Analytics Platform
+# 🎓 IDS E-Portfolio system - Pre-A-Level Assessment & Analytics Platform
 
 > **Comprehensive educational assessment analytics platform with real-time collaboration**
 

@@ -69,8 +69,7 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
             <GraduationCap className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-foreground">EduAssess</h1>
-            <p className="text-xs text-muted-foreground">ระบบวิเคราะห์ผลสอบ Pre-A-Level</p>
+            <h1 className="text-lg font-bold tracking-tight text-foreground">IDS E-Portfolio system</h1>
           </div>
         </div>
 

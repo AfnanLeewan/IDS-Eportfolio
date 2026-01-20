@@ -45,6 +45,7 @@ import {
   Student,
   Subject,
 } from "@/lib/mockData";
+import { useSubjectWithTopics, useClasses } from '@/hooks/useSupabaseData';
 import { ScoreEditDialog } from "./ScoreEditDialog";
 import { AddStudentScoreDialog } from "./AddStudentScoreDialog";
 import {
@@ -69,11 +70,26 @@ interface ScoresViewProps {
 }
 
 export function ScoresView({ students: initialStudents = mockStudents }: ScoresViewProps) {
+  // Database hooks for subjects and classes
+  const { data: subjectsFromDB = [], isLoading: subjectsLoading, error: subjectsError } = useSubjectWithTopics('pre-a-level');
+  const { data: classesFromDB = [] } = useClasses();
+  
+  // Debug logging
+  console.log('🔍 ScoresView Debug:', {
+    subjectsFromDB,
+    subjectsCount: subjectsFromDB.length,
+    isLoading: subjectsLoading,
+    error: subjectsError
+  });
+  
   const [students, setStudents] = useState<Student[]>(initialStudents);
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
+  
+  // Get class-specific subjects when a class is selected
+  const { data: classSubjects = [] } = useClassSubjects(selectedClass);
   
   // CRUD state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -83,6 +99,9 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
   const [selectedSubjectForEdit, setSelectedSubjectForEdit] = useState<Subject | null>(null);
   const [studentToDelete, setStudentToDelete] = useState<{ student: Student; subject: Subject } | null>(null);
 
+  // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS!
+  // This ensures hooks are always called in the same order
+  
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
       const matchesClass = selectedClass === "all" || student.classId === selectedClass;
@@ -92,9 +111,82 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
     });
   }, [students, selectedClass, searchQuery]);
 
-  const subjects = selectedSubject === "all" 
-    ? preALevelProgram.subjects 
-    : preALevelProgram.subjects.filter(s => s.id === selectedSubject);
+  // Use database subjects and map to component format
+  const subjects = useMemo(() => {
+    if (!subjectsFromDB || subjectsFromDB.length === 0) return [];
+    
+    const dbSubjects = selectedSubject === "all" 
+      ? subjectsFromDB
+      : subjectsFromDB.filter(s => s.id === selectedSubject);
+    
+    // Map database format (snake_case) to component format (camelCase)
+    return dbSubjects.map(subject => ({
+      id: subject.id,
+      name: subject.name,
+      code: subject.code,
+      subTopics: subject.sub_topics?.map(st => ({
+        id: st.id,
+        name: st.name,
+        maxScore: st.max_score, // Convert snake_case to camelCase
+      })) || []
+    }));
+  }, [subjectsFromDB, selectedSubject]);
+
+  // NOW it's safe to do early returns AFTER all hooks are called
+  
+  // Show error state
+  if (subjectsError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Card className="p-6 max-w-md">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Subjects</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              {subjectsError.message || 'Failed to load subjects from database'}
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Reload Page
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show loading state while subjects are being fetched
+  if (subjectsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading subjects...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no subjects found
+  if (!subjectsFromDB || subjectsFromDB.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Card className="p-6 max-w-md text-center">
+          <CardHeader>
+            <CardTitle>No Subjects Found</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              No subjects have been added yet. Please add subjects in the Management page first.
+            </p>
+            <Button onClick={() => window.location.href = '/management'}>
+              Go to Management
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const toggleSubject = (subjectId: string) => {
     setExpandedSubjects(prev => 

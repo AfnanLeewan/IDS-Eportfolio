@@ -127,7 +127,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border/50 bg-card/80 backdrop-blur-sm py-6">
         <div className="container text-center text-sm text-muted-foreground">
-          <p>แพลตฟอร์ม EduAssess • ระบบวิเคราะห์ผลสอบ Pre-A-Level</p>
+          <p>แพลตฟอร์ม IDS E-Portfolio system • ระบบวิเคราะห์ผลสอบ Pre-A-Level</p>
           <p className="mt-1 text-xs">
             คุณเข้าสู่ระบบในฐานะ: {role === 'admin' ? 'ผู้ดูแลระบบ' : role === 'teacher' ? 'ครู' : 'นักเรียน'}
           </p>

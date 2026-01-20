@@ -1,5 +1,5 @@
 -- =====================================================
--- COMPLETE DATABASE SCHEMA FOR EDUASSESS PLATFORM
+-- COMPLETE DATABASE SCHEMA FOR IDS E-Portfolio system PLATFORM
 -- Migration: 20260120084500_complete_schema.sql
 -- =====================================================
 

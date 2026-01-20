@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, User, Search, UserPlus, ArrowRight } from "lucide-react";
+import { Trash2, User, Search, UserPlus, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,51 +20,125 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useClasses, useStudents, useCreateStudent, useUpdateStudent, useDeleteStudent } from "@/hooks/useSupabaseData";
+import { generateStudentId } from "@/lib/dataUtils";
+import { Loader2 } from "lucide-react";
 
-interface Student {
-  id: string;
-  name: string;
-  classId: string;
+interface AuthorizedUser {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  role: string;
 }
-
-interface ClassGroup {
-  id: string;
-  name: string;
-}
-
-const initialClasses: ClassGroup[] = [
-  { id: "m6-1", name: "M.6/1" },
-  { id: "m6-2", name: "M.6/2" },
-  { id: "m6-3", name: "M.6/3" },
-];
-
-const initialStudents: Student[] = [
-  { id: "STU0001", name: "Somchai Prasert", classId: "m6-1" },
-  { id: "STU0002", name: "Nattapong Wongsa", classId: "m6-1" },
-  { id: "STU0003", name: "Pimchanok Siriwat", classId: "m6-1" },
-  { id: "STU0004", name: "Thanakorn Jitman", classId: "m6-2" },
-  { id: "STU0005", name: "Kanokwan Thongchai", classId: "m6-2" },
-  { id: "STU0006", name: "Worawit Suksawat", classId: "m6-2" },
-  { id: "STU0007", name: "Rattana Phongsri", classId: "m6-3" },
-  { id: "STU0008", name: "Pakorn Nitirat", classId: "m6-3" },
-];
 
 export function StudentManagement() {
-  const [students, setStudents] = useState<Student[]>(initialStudents);
-  const [classes] = useState<ClassGroup[]>(initialClasses);
+  const { data: students = [], isLoading: studentsLoading } = useStudents();
+  const { data: classes = [], isLoading: classesLoading } = useClasses();
+  const createStudent = useCreateStudent();
+  const updateStudent = useUpdateStudent();
+  const deleteStudent = useDeleteStudent();
+  
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isMoveOpen, setIsMoveOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [formData, setFormData] = useState({ name: "", studentId: "", classId: "" });
+  const [selectedStudent, setSelectedStudent] = useState<typeof students[0] | null>(null);
+  
+  // State for authorized users dropdown
+  const [authorizedUsers, setAuthorizedUsers] = useState<AuthorizedUser[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [studentIdInput, setStudentIdInput] = useState("");
+  const [selectedClassId, setSelectedClassId] = useState("");
   const [moveToClass, setMoveToClass] = useState("");
+  const [usersOpen, setUsersOpen] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  
   const { toast } = useToast();
 
+  // Fetch authorized users (student role) who don't have a student record yet
+  useEffect(() => {
+    if (isCreateOpen) {
+      fetchAuthorizedUsers();
+    }
+  }, [isCreateOpen]);
+
+  const fetchAuthorizedUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      // Get all profiles with student role
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select(`
+          user_id,
+          email,
+          full_name
+        `);
+
+      if (profileError) throw profileError;
+
+      // Get user roles
+      const { data: roles, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .eq('role', 'student');
+
+      if (roleError) throw roleError;
+
+      // Get existing students to filter them out
+      const { data: existingStudents, error: studentsError } = await supabase
+        .from('students')
+        .select('user_id')
+        .not('user_id', 'is', null);
+
+      if (studentsError) throw studentsError;
+
+      const existingUserIds = new Set(existingStudents?.map(s => s.user_id));
+      const studentRoleUserIds = new Set(roles?.map(r => r.user_id));
+
+      // Filter profiles: students who don't have a student record yet
+      const availableUsers = profiles
+        ?.filter(p => 
+          p.user_id && 
+          studentRoleUserIds.has(p.user_id) && 
+          !existingUserIds.has(p.user_id)
+        )
+        .map(p => ({
+          user_id: p.user_id,
+          email: p.email || '',
+          full_name: p.full_name || p.email || 'Unknown',
+          role: 'student'
+        })) || [];
+
+      setAuthorizedUsers(availableUsers);
+    } catch (error) {
+      console.error('Error fetching authorized users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load authorized users",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   const filteredStudents = students.filter((student) => {
-    const matchesClass = selectedClass === "all" || student.classId === selectedClass;
+    const matchesClass = selectedClass === "all" || student.class_id === selectedClass;
     const matchesSearch =
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -76,49 +150,40 @@ export function StudentManagement() {
   };
 
   const handleCreate = () => {
-    if (!formData.name.trim() || !formData.studentId.trim() || !formData.classId) {
+    if (!selectedUserId || !studentIdInput.trim() || !selectedClassId) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please select a user, enter Student ID, and assign to class",
         variant: "destructive",
       });
       return;
     }
 
-    // Check for duplicate student ID
-    if (students.some((s) => s.id === formData.studentId)) {
-      toast({
-        title: "Error",
-        description: "Student ID already exists",
-        variant: "destructive",
-      });
-      return;
-    }
+    const selectedUser = authorizedUsers.find(u => u.user_id === selectedUserId);
+    if (!selectedUser) return;
 
-    const newStudent: Student = {
-      id: formData.studentId,
-      name: formData.name,
-      classId: formData.classId,
-    };
-
-    setStudents([...students, newStudent]);
-    setFormData({ name: "", studentId: "", classId: "" });
-    setIsCreateOpen(false);
-    toast({
-      title: "Success",
-      description: `Student "${formData.name}" has been added`,
+    createStudent.mutate({
+      id: studentIdInput,
+      name: selectedUser.full_name,
+      class_id: selectedClassId,
+      email: selectedUser.email,
+    }, {
+      onSuccess: () => {
+        setSelectedUserId("");
+        setStudentIdInput("");
+        setSelectedClassId("");
+        setIsCreateOpen(false);
+      }
     });
   };
 
   const handleDelete = (studentId: string) => {
-    setStudents(students.filter((s) => s.id !== studentId));
-    toast({
-      title: "Deleted",
-      description: "Student has been removed",
-    });
+    if (confirm("Are you sure you want to delete this student record?")) {
+      deleteStudent.mutate(studentId);
+    }
   };
 
-  const openMoveDialog = (student: Student) => {
+  const openMoveDialog = (student: typeof students[0]) => {
     setSelectedStudent(student);
     setMoveToClass("");
     setIsMoveOpen(true);
@@ -127,26 +192,33 @@ export function StudentManagement() {
   const handleMove = () => {
     if (!selectedStudent || !moveToClass) return;
 
-    setStudents(
-      students.map((s) =>
-        s.id === selectedStudent.id ? { ...s, classId: moveToClass } : s
-      )
-    );
-    setIsMoveOpen(false);
-    setSelectedStudent(null);
-    toast({
-      title: "Success",
-      description: `Student moved to ${getClassName(moveToClass)}`,
+    updateStudent.mutate({
+      id: selectedStudent.id,
+      class_id: moveToClass,
+    }, {
+      onSuccess: () => {
+        setIsMoveOpen(false);
+        setSelectedStudent(null);
+        toast({
+          title: "Success",
+          description: `Student moved to ${getClassName(moveToClass)}`,
+        });
+      }
     });
   };
 
-  const generateStudentId = () => {
-    const maxId = students.reduce((max, s) => {
-      const num = parseInt(s.id.replace("STU", ""));
-      return num > max ? num : max;
-    }, 0);
-    return `STU${String(maxId + 1).padStart(4, "0")}`;
+  const autoGenerateStudentId = () => {
+    const newId = generateStudentId(students || []);
+    setStudentIdInput(newId);
   };
+
+  if (studentsLoading || classesLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -154,7 +226,7 @@ export function StudentManagement() {
         <div>
           <h3 className="text-lg font-semibold">Students</h3>
           <p className="text-sm text-muted-foreground">
-            Manage students and assign them to classes
+            Link authorized users to student records
           </p>
         </div>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -166,50 +238,107 @@ export function StudentManagement() {
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Add New Student</DialogTitle>
+              <DialogTitle>Link User to Student Record</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Select an authorized user to create their student record
+              </p>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              {/* Select Authorized User */}
+              <div className="space-y-2">
+                <Label>Select Authorized User</Label>
+                <Popover open={usersOpen} onOpenChange={setUsersOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={usersOpen}
+                      className="w-full justify-between"
+                      disabled={loadingUsers}
+                    >
+                      {loadingUsers ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading users...
+                        </span>
+                      ) : selectedUserId ? (
+                        authorizedUsers.find(u => u.user_id === selectedUserId)?.full_name
+                      ) : (
+                        "Select user..."
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search users..." />
+                      <CommandEmpty>
+                        {authorizedUsers.length === 0 ? (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            No authorized users without student records found.
+                            <br />
+                            Users must sign up first and have student role.
+                          </div>
+                        ) : (
+                          "No user found."
+                        )}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {authorizedUsers.map((user) => (
+                          <CommandItem
+                            key={user.user_id}
+                            onSelect={() => {
+                              setSelectedUserId(user.user_id);
+                              setUsersOpen(false);
+                            }}
+                          >
+                            <CheckCircle2
+                              className={`mr-2 h-4 w-4 ${
+                                selectedUserId === user.user_id
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              }`}
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">{user.full_name}</span>
+                              <span className="text-xs text-muted-foreground">{user.email}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {authorizedUsers.length === 0 && !loadingUsers && (
+                  <p className="text-xs text-amber-600">
+                    ℹ️ All authorized users already have student records, or no users with student role exist.
+                  </p>
+                )}
+              </div>
+
+              {/* Student ID Input */}
               <div className="space-y-2">
                 <Label htmlFor="studentId">Student ID</Label>
                 <div className="flex gap-2">
                   <Input
                     id="studentId"
                     placeholder="e.g., STU0009"
-                    value={formData.studentId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, studentId: e.target.value.toUpperCase() })
-                    }
+                    value={studentIdInput}
+                    onChange={(e) => setStudentIdInput(e.target.value.toUpperCase())}
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() =>
-                      setFormData({ ...formData, studentId: generateStudentId() })
-                    }
+                    onClick={autoGenerateStudentId}
                   >
                     Auto
                   </Button>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="studentName">Full Name</Label>
-                <Input
-                  id="studentName"
-                  placeholder="e.g., John Doe"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                />
-              </div>
+
+              {/* Assign to Class */}
               <div className="space-y-2">
                 <Label htmlFor="assignClass">Assign to Class</Label>
-                <Select
-                  value={formData.classId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, classId: value })
-                  }
-                >
+                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a class" />
                   </SelectTrigger>
@@ -227,8 +356,19 @@ export function StudentManagement() {
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreate} className="gradient-primary text-primary-foreground">
-                Add Student
+              <Button 
+                onClick={handleCreate} 
+                className="gradient-primary text-primary-foreground"
+                disabled={!selectedUserId || !studentIdInput || !selectedClassId || createStudent.isPending}
+              >
+                {createStudent.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Student Record"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -300,7 +440,7 @@ export function StudentManagement() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant="secondary" className="font-normal">
-                      {getClassName(student.classId)}
+                      {getClassName(student.class_id)}
                     </Badge>
                     <Button
                       variant="ghost"
@@ -316,8 +456,13 @@ export function StudentManagement() {
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
                       onClick={() => handleDelete(student.id)}
+                      disabled={deleteStudent.isPending}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {deleteStudent.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </motion.div>
@@ -339,7 +484,7 @@ export function StudentManagement() {
                 <div className="rounded-xl bg-muted/50 p-4">
                   <p className="font-medium">{selectedStudent.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    Currently in: {getClassName(selectedStudent.classId)}
+                    Currently in: {getClassName(selectedStudent.class_id)}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -350,7 +495,7 @@ export function StudentManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       {classes
-                        .filter((c) => c.id !== selectedStudent.classId)
+                        .filter((c) => c.id !== selectedStudent.class_id)
                         .map((classGroup) => (
                           <SelectItem key={classGroup.id} value={classGroup.id}>
                             {classGroup.name}
@@ -368,10 +513,17 @@ export function StudentManagement() {
             </Button>
             <Button
               onClick={handleMove}
-              disabled={!moveToClass}
+              disabled={!moveToClass || updateStudent.isPending}
               className="gradient-primary text-primary-foreground"
             >
-              Move Student
+              {updateStudent.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Moving...
+                </>
+              ) : (
+                "Move Student"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

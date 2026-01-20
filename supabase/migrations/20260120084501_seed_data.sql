@@ -1,5 +1,5 @@
 -- =====================================================
--- SEED DATA FOR EDUASSESS PLATFORM
+-- SEED DATA FOR IDS E-Portfolio system PLATFORM
 -- Migration: 20260120084501_seed_data.sql
 -- =====================================================
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the complete backend implementation for the EduAssess platform using Supabase as the database and backend-as-a-service.
+This document describes the complete backend implementation for the IDS E-Portfolio system platform using Supabase as the database and backend-as-a-service.
 
 ## Database Schema
 

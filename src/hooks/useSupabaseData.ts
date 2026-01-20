@@ -105,6 +105,61 @@ export function useSubjectWithTopics(programId: string = 'pre-a-level') {
   });
 }
 
+// Get subjects for a specific class
+export function useClassSubjects(classId: string) {
+  return useQuery({
+    queryKey: ['class_subjects', classId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('class_subjects')
+        .select(`
+          *,
+          subjects (
+            *,
+            sub_topics (*)
+          )
+        `)
+        .eq('class_id', classId)
+        .eq('is_active', true)
+        .order('display_order');
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!classId && classId !== 'all',
+  });
+}
+
+// Get all available subjects (not yet assigned to a class)
+export function useAvailableSubjects(classId: string, programId: string = 'pre-a-level') {
+  return useQuery({
+    queryKey: ['available_subjects', classId, programId],
+    queryFn: async () => {
+      // Get all subjects for the program
+      const { data: allSubjects, error: subjectsError } = await supabase
+        .from('subjects')
+        .select('*')
+        .eq('program_id', programId);
+      
+      if (subjectsError) throw subjectsError;
+
+      // Get already assigned subjects for this class
+      const { data: classSubjects, error: classSubjectsError } = await supabase
+        .from('class_subjects')
+        .select('subject_id')
+        .eq('class_id', classId)
+        .eq('is_active', true);
+      
+      if (classSubjectsError) throw classSubjectsError;
+
+      // Filter out already assigned subjects
+      const assignedIds = new Set(classSubjects?.map(cs => cs.subject_id) || []);
+      return allSubjects?.filter(s => !assignedIds.has(s.id)) || [];
+    },
+    enabled: !!classId && classId !== 'all',
+  });
+}
+
 // ============ CLASSES ============
 
 export function useClasses() {
@@ -495,3 +550,249 @@ export function useRefreshStatistics() {
     },
   });
 }
+
+// ============ SUBJECT MUTATIONS ============
+
+// Create subject
+export function useCreateSubject() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (subject: {
+      id: string;
+      program_id: string;
+      name: string;
+      code: string;
+      display_order?: number;
+    }) => {
+      const { data, error } = await supabase
+        .from('subjects')
+        .insert(subject)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.subjects });
+      queryClient.invalidateQueries({ queryKey: ['subjects_with_topics'] });
+      toast.success('เพิ่มวิชาสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Update subject
+export function useUpdateSubject() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: {
+      id: string;
+      name?: string;
+      code?: string;
+      display_order?: number;
+    }) => {
+      const { data, error } = await supabase
+        .from('subjects')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.subjects });
+      queryClient.invalidateQueries({ queryKey: ['subjects_with_topics'] });
+      toast.success('อัปเดตวิชาสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Delete subject
+export function useDeleteSubject() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (subjectId: string) => {
+      const { error } = await supabase
+        .from('subjects')
+        .delete()
+        .eq('id', subjectId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.subjects });
+      queryClient.invalidateQueries({ queryKey: queryKeys.subTopics });
+      queryClient.invalidateQueries({ queryKey: ['subjects_with_topics'] });
+      toast.success('ลบวิชาสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// ============ SUB-TOPIC MUTATIONS ============
+
+// Create sub-topic
+export function useCreateSubTopic() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (subTopic: {
+      id: string;
+      subject_id: string;
+      name: string;
+      max_score: number;
+      display_order?: number;
+    }) => {
+      const { data, error } = await supabase
+        .from('sub_topics')
+        .insert(subTopic)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.subTopics });
+      queryClient.invalidateQueries({ queryKey: queryKeys.subjects });
+      queryClient.invalidateQueries({ queryKey: ['subjects_with_topics'] });
+      toast.success('เพิ่มหัวข้อย่อยสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Update sub-topic
+export function useUpdateSubTopic() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: {
+      id: string;
+      name?: string;
+      max_score?: number;
+      display_order?: number;
+    }) => {
+      const { data, error } = await supabase
+        .from('sub_topics')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.subTopics });
+      queryClient.invalidateQueries({ queryKey: ['subjects_with_topics'] });
+      toast.success('อัปเดตหัวข้อย่อยสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Delete sub-topic
+export function useDeleteSubTopic() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (subTopicId: string) => {
+      const { error } = await supabase
+        .from('sub_topics')
+        .delete()
+        .eq('id', subTopicId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.subTopics });
+      queryClient.invalidateQueries({ queryKey: ['subjects_with_topics'] });
+      toast.success('ลบหัวข้อย่อยสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// ============ CLASS-SUBJECT MUTATIONS ============
+
+// Assign subject to class
+export function useAssignSubjectToClass() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ classId, subjectId }: {
+      classId: string;
+      subjectId: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('class_subjects')
+        .insert({
+          class_id: classId,
+          subject_id: subjectId,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['class_subjects', variables.classId] });
+      queryClient.invalidateQueries({ queryKey: ['available_subjects', variables.classId] });
+      toast.success('เพิ่มวิชาให้ห้องเรียนสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Remove subject from class
+export function useRemoveSubjectFromClass() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ classId, subjectId }: {
+      classId: string;
+      subjectId: string;
+    }) => {
+      const { error } = await supabase
+        .from('class_subjects')
+        .delete()
+        .eq('class_id', classId)
+        .eq('subject_id', subjectId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['class_subjects', variables.classId] });
+      queryClient.invalidateQueries({ queryKey: ['available_subjects', variables.classId] });
+      toast.success('ลบวิชาออกจากห้องเรียนสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+

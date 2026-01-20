@@ -2,7 +2,7 @@
 
 ## What Was Implemented
 
-This document summarizes the complete backend and database implementation for the EduAssess platform using Supabase.
+This document summarizes the complete backend and database implementation for the IDS E-Portfolio system platform using Supabase.
 
 ---
 
