@@ -1,10 +1,19 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Award, TrendingUp, Target, BookOpen } from "lucide-react";
 import { StatCard } from "@/components/ui/stat-card";
 import { SubjectRadarChart } from "./SubjectRadarChart";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import { SkillProfileComparison } from "./SkillProfileComparison";
+import { SubTopicScoreChart } from "./SubTopicScoreChart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   Student,
@@ -20,7 +29,10 @@ interface StudentDashboardProps {
 }
 
 export function StudentDashboard({ student }: StudentDashboardProps) {
+  const [selectedSubject, setSelectedSubject] = useState(preALevelProgram.subjects[0].id);
   const totalScore = getTotalScore(student);
+  
+  const selectedSubjectData = preALevelProgram.subjects.find(s => s.id === selectedSubject);
   
   // Calculate percentile
   const allScores = mockStudents.map((s) => getTotalScore(s).percentage);
@@ -207,6 +219,31 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
 
       {/* Skill Profile Comparison Chart */}
       <SkillProfileComparison student={student} />
+
+      {/* Sub-topic Score Comparison with Subject Filter */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Sub-topic Analysis</h3>
+          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select Subject" />
+            </SelectTrigger>
+            <SelectContent>
+              {preALevelProgram.subjects.map((subject) => (
+                <SelectItem key={subject.id} value={subject.id}>
+                  {subject.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {selectedSubjectData && (
+          <SubTopicScoreChart 
+            student={student} 
+            subject={selectedSubjectData}
+          />
+        )}
+      </div>
 
       {/* Detailed Breakdown */}
       <ScoreBreakdown student={student} />

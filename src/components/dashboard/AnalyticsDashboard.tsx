@@ -41,6 +41,7 @@ import { SubjectRadarChart } from "./SubjectRadarChart";
 import { BoxPlotChart } from "./BoxPlotChart";
 import { SubTopicHeatmap } from "./SubTopicHeatmap";
 import { SubTopicGapChart } from "./SubTopicGapChart";
+import { SubTopicScoreChart } from "./SubTopicScoreChart";
 import { StudentDeepDive } from "./StudentDeepDive";
 
 // Additional exam programs for future use
@@ -349,6 +350,14 @@ export function AnalyticsDashboard() {
                 selectedClass={selectedClass}
               />
             </div>
+
+            {/* Sub-topic Score Chart (when subject is selected) */}
+            {selectedSubjectData && (
+              <SubTopicScoreChart
+                subject={selectedSubjectData}
+                classId={selectedClass === "all" ? undefined : selectedClass}
+              />
+            )}
 
             {/* Quick Access Lists */}
             <div className="grid gap-6 lg:grid-cols-2">
