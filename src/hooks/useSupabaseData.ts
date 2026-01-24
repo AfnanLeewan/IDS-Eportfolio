@@ -1757,6 +1757,25 @@ export function useDeleteUser() {
   });
 }
 
+// User change own password
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (newPassword: string) => {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
 // ============ TEACHER ASSIGNMENTS ============
 
 export function useTeacherAssignments(teacherId?: string) {

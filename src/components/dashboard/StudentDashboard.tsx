@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SubjectRadarChart } from "./SubjectRadarChart";
 import { ScoreBreakdown } from "./ScoreBreakdown";
 import { SubTopicScoreChart } from "./SubTopicScoreChart";
+import { SubTopicAnalysisCard } from "./SubTopicAnalysisCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -301,11 +302,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
               <p className="text-3xl font-bold">{metrics.percentage.toFixed(0)}%</p>
               <p className="text-xs text-primary-foreground/70">คะแนนรวม ({studentPrograms.find((p: any) => p.program_id === selectedProgramId)?.program_name || "All"})</p>
             </div>
-            <div className="h-12 w-px bg-primary-foreground/20" />
-            <div className="text-center">
-              <p className="text-3xl font-bold">#{metrics.rank > 0 ? metrics.rank : "-"}</p>
-              <p className="text-xs text-primary-foreground/70">อันดับในห้อง</p>
-            </div>
+            {/* Removed Rank Display */}
           </div>
         </div>
       </motion.div>
@@ -356,20 +353,6 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
           subtitle={`${metrics.percentage.toFixed(1)}% โดยรวม`}
           icon={Award}
           variant="primary"
-        />
-        <StatCard
-          title="เปอร์เซ็นไทล์"
-          value={`ท็อป ${100 - Math.floor(metrics.percentile)}%`}
-          subtitle={`ดีกว่า ${metrics.percentile.toFixed(0)}% ของนักเรียน`}
-          icon={TrendingUp}
-          variant="success"
-        />
-        <StatCard
-          title="อันดับในห้อง"
-          value={`#${metrics.rank}`}
-          subtitle={`จาก ${metrics.classSize} คน`}
-          icon={Target}
-          variant="default"
         />
         <StatCard
           title="จำนวนวิชา"
@@ -468,28 +451,47 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
       </div>
 
       {/* Sub-topic Score Comparison with Subject Filter */}
+      {/* Sub-topic Score Comparison and Analysis Grid */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">การวิเคราะห์หัวข้อย่อย</h3>
-          <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="เลือกวิชา" />
-            </SelectTrigger>
-            <SelectContent>
-              {subjects.map((subject: any) => (
-                <SelectItem key={subject.id} value={subject.id}>
-                  {subject.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <h3 className="text-lg font-semibold">การวิเคราะห์หัวข้อย่อย</h3>
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+            {/* Left: Score Chart */}
+            <div className="space-y-4 h-full flex flex-col">
+                 <div className="flex items-center justify-between bg-card p-3 rounded-xl border shadow-sm">
+                    <span className="text-sm font-medium pl-2">เลือกวิชาพิจารณา:</span>
+                    <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
+                        <SelectTrigger className="w-[180px] h-9">
+                        <SelectValue placeholder="เลือกวิชา" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        {subjects.map((subject: any) => (
+                            <SelectItem key={subject.id} value={subject.id}>
+                            {subject.name}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
+                 
+                 {selectedSubject && (
+                    <SubTopicScoreChart 
+                        student={legacyStudent} 
+                        subject={selectedSubject} 
+                        showClassComparison={true}
+                        classId={student.class_id}
+                        className="flex-1"
+                    />
+                 )}
+            </div>
+            
+            {/* Right: Analysis Card */}
+            <div className="h-full">
+              <SubTopicAnalysisCard 
+                subjects={subjects}
+                studentScores={scores}
+              />
+            </div>
         </div>
-        {selectedSubject && (
-          <SubTopicScoreChart 
-            student={legacyStudent} 
-            subject={selectedSubject} 
-          />
-        )}
       </div>
 
       {/* Detailed Breakdown */}

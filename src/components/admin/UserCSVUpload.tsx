@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Upload, FileText, Loader2, AlertTriangle, Check, Download, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { useCreateUser, useCreateStudent, useClasses } from "@/hooks/useSupabaseData";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -57,7 +58,7 @@ export function UserCSVUpload() {
         // Validate headers/content roughly
         const validRows = rows.filter(r => r.name && r.email && r.password && r.role).map(r => ({
           name: r.name,
-          email: r.email,
+          email: r.email.toLowerCase(),
           password: r.password,
           role: r.role.toLowerCase(), // Normalize role
           class: r['class'] || r['class_name'] || '',
@@ -99,47 +100,70 @@ export function UserCSVUpload() {
         setProgress(progressValue);
         
         try {
-            // 1. Create Auth User & Profile
-            // This assumes create_new_user RPC handles duplicate emails gracefully by throwing
-            const userId = await createUserMutation.mutateAsync({
+            // Determine class ID
+            let classId = "";
+            if (row.class) {
+                const matchedClass = classes.find(c => c.name.trim().toLowerCase() === row.class?.trim().toLowerCase());
+                if (matchedClass) {
+                    classId = matchedClass.id;
+                } else {
+                     addLog(`⚠️ Class not found: "${row.class}" for ${row.name}.`);
+                }
+            }
+
+            // Determine student ID
+            const studentId = row.student_id && row.student_id.trim() !== '' 
+              ? row.student_id 
+              : crypto.randomUUID();
+
+            if (!row.student_id && row.role === 'student') {
+               addLog(`ℹ️ No student_id provided for ${row.name}, generated random ID: ${studentId}`);
+            }
+
+            // Call Edge Function
+            // Note: This requires the 'admin-create-user' function to be deployed/served
+            const { data, error } = await supabase.functions.invoke('admin-create-user', {
+              body: {
                 email: row.email,
                 password: row.password,
                 fullName: row.name,
-                role: row.role
+                role: row.role,
+                studentId: studentId,
+                classId: classId,
+                confirmed: true
+              }
             });
 
-            addLog(`✅ Created user: ${row.email} (${row.role})`);
-
-            // 2. If Student, create Student Record
-            if (row.role === 'student') {
-                let classId = "";
-                if (row.class) {
-                    const matchedClass = classes.find(c => c.name.trim().toLowerCase() === row.class?.trim().toLowerCase());
-                    if (matchedClass) {
-                        classId = matchedClass.id;
-                    } else {
-                         addLog(`⚠️ Class not found: "${row.class}" for ${row.name}. Student created without class.`);
-                    }
-                }
-
-                if (userId) { 
-                     // Use provided student_id or generate a new one if missing
-                     const studentId = row.student_id && row.student_id.trim() !== '' 
-                        ? row.student_id 
-                        : crypto.randomUUID();
-                     
-                     if (!row.student_id) {
-                        addLog(`ℹ️ No student_id provided for ${row.name}, generated random ID: ${studentId}`);
-                     }
-
-                     await createStudentMutation.mutateAsync({
+            if (error) {
+              // Fallback to SQL (Previous Method) if Function fails or not found?
+              // No, let's trust the error. 
+              // BUT, if the user hasn't deployed the function, this will block them.
+              // I will leave the old method as a fallback only if status is 404
+              if (error.code === 'FUNCTION_NOT_FOUND' || error.status === 404) {
+                   addLog(`⚠️ Edge Function not found. Falling back to SQL RPC...`);
+                   const userId = await createUserMutation.mutateAsync({
+                        email: row.email,
+                        password: row.password,
+                        fullName: row.name,
+                        role: row.role
+                   });
+                   
+                   // Handle student creation manually if fallback used
+                   if (row.role === 'student' && userId) {
+                       await createStudentMutation.mutateAsync({
                          id: studentId,
                          name: row.name,
                          email: row.email,
                          user_id: userId,
                          class_id: classId || undefined 
                      } as any); 
-                }
+                   }
+                   addLog(`✅ Created user (SQL Fallback): ${row.email}`);
+              } else {
+                  throw new Error(error.message || "Failed to invoke admin function");
+              }
+            } else {
+               addLog(`✅ Created user: ${row.email} (${row.role})`);
             }
             successCount++;
 

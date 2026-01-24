@@ -1,8 +1,11 @@
--- Fix create_new_user function to find pgcrypto functions (gen_salt, crypt)
--- by adding 'extensions' to the search_path
+-- Fix permissions for extensions schema to prevent "Database error querying schema" on login
+GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO postgres, anon, authenticated, service_role;
 
+-- Ensure pgcrypto is available
 CREATE EXTENSION IF NOT EXISTS pgcrypto SCHEMA extensions;
 
+-- Update create_new_user to use lower-case email and standard bcrypt cost
 CREATE OR REPLACE FUNCTION public.create_new_user(
   p_email TEXT,
   p_password TEXT,
@@ -48,8 +51,8 @@ BEGIN
   ) VALUES (
     v_user_id,
     v_instance_id,
-    lower(p_email),
-    extensions.crypt(p_password, extensions.gen_salt('bf', 10)),
+    lower(p_email), -- Enforce lowercase email
+    extensions.crypt(p_password, extensions.gen_salt('bf', 10)), -- Use cost 10
     now(),
     '{"provider":"email","providers":["email"]}',
     jsonb_build_object('full_name', p_full_name),

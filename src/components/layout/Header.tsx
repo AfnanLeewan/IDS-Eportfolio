@@ -1,8 +1,13 @@
 import { motion } from "framer-motion";
-import { GraduationCap, User, Users, Search, Bell, ChevronDown, Settings, LayoutDashboard, FileSpreadsheet, LogOut, Shield } from "lucide-react";
+import { GraduationCap, User, Users, Search, Bell, ChevronDown, Settings, LayoutDashboard, FileSpreadsheet, LogOut, Shield, Key, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChangePassword } from "@/hooks/useSupabaseData";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -22,6 +27,25 @@ interface HeaderProps {
 export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps) {
   const { profile, role, signOut, isAdmin, isTeacher } = useAuth();
   const navigate = useNavigate();
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const changePasswordMutation = useChangePassword();
+
+  const handleChangePassword = async () => {
+    if (!newPassword || newPassword !== confirmPassword) {
+      return; 
+    }
+
+    try {
+      await changePasswordMutation.mutateAsync(newPassword);
+      setChangePasswordOpen(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -184,6 +208,11 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
                 <p className="text-xs text-muted-foreground">{profile?.email}</p>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setChangePasswordOpen(true)} className="cursor-pointer">
+                <Key className="mr-2 h-4 w-4" />
+                เปลี่ยนรหัสผ่าน
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
                 ออกจากระบบ
@@ -192,6 +221,56 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
           </DropdownMenu>
         </div>
       </div>
+      
+      {/* Change Password Dialog */}
+      <Dialog open={changePasswordOpen} onOpenChange={(open) => {
+        setChangePasswordOpen(open);
+        if (!open) {
+          setNewPassword('');
+          setConfirmPassword('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>เปลี่ยนรหัสผ่าน</DialogTitle>
+            <DialogDescription>
+              กำหนดรหัสผ่านใหม่สำหรับบัญชีของคุณ
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="new-password">รหัสผ่านใหม่</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="ระบุรหัสผ่านใหม่..."
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirm-password">ยืนยันรหัสผ่านใหม่</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="ระบุรหัสผ่านใหม่อีกครั้ง..."
+              />
+              {newPassword && confirmPassword && newPassword !== confirmPassword && (
+                 <p className="text-xs text-destructive">รหัสผ่านไม่ตรงกัน</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangePasswordOpen(false)}>ยกเลิก</Button>
+            <Button onClick={handleChangePassword} disabled={!newPassword || !confirmPassword || newPassword !== confirmPassword || changePasswordMutation.isPending}>
+              {changePasswordMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              บันทึกรหัสผ่าน
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.header>
   );
 }

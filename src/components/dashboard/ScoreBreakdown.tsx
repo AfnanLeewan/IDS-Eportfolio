@@ -109,14 +109,7 @@ export function ScoreBreakdown({ subjects, studentScores, className }: ScoreBrea
                         {percentage.toFixed(1)}%
                       </p>
                     </div>
-                    <span
-                      className={cn(
-                        "rounded-md px-2 py-1 text-xs font-bold",
-                        grade.className
-                      )}
-                    >
-                      {grade.label}
-                    </span>
+  
                   </div>
                 </button>
 

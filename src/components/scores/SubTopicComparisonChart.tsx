@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   BarChart,
   Bar,
@@ -36,6 +37,11 @@ export function SubTopicComparisonChart({
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(
     subjects[0]?.id || ""
   );
+  const [displayOptions, setDisplayOptions] = useState({
+      showMax: true,
+      showAvg: true,
+      showMin: true
+  });
 
   const selectedSubject = useMemo(() => {
     return subjects.find((s) => s.id === selectedSubjectId) || subjects[0];
@@ -161,29 +167,83 @@ export function SubTopicComparisonChart({
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ paddingTop: 10 }} />
-                <Bar
-                  dataKey="maxScore"
-                  name="คะแนนสูงสุด"
-                  fill="hsl(var(--success))"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={20}
-                />
-                <Bar
-                  dataKey="average"
-                  name="ค่าเฉลี่ยห้อง"
-                  fill="#002D56"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={20}
-                />
-                <Bar
-                  dataKey="minScore"
-                  name="คะแนนต่ำสุด"
-                  fill="hsl(var(--destructive))"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={20}
-                />
+                
+                {displayOptions.showMax && (
+                  <Bar
+                    dataKey="maxScore"
+                    name="คะแนนสูงสุด"
+                    fill="hsl(var(--success))"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={20}
+                  />
+                )}
+                {displayOptions.showAvg && (
+                  <Bar
+                    dataKey="average"
+                    name="ค่าเฉลี่ยห้อง"
+                    fill="#002D56"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={20}
+                  />
+                )}
+                {displayOptions.showMin && (
+                  <Bar
+                    dataKey="minScore"
+                    name="คะแนนต่ำสุด"
+                    fill="hsl(var(--destructive))"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={20}
+                  />
+                )}
               </BarChart>
             </ResponsiveContainer>
+          </div>
+          
+          <div className="flex justify-center gap-6 mt-4 pt-2 border-t">
+             <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="showMax" 
+                  checked={displayOptions.showMax} 
+                  onCheckedChange={(checked) => setDisplayOptions(prev => ({ ...prev, showMax: !!checked }))}
+                  className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                />
+                <label
+                  htmlFor="showMax"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  คะแนนสูงสุด
+                </label>
+             </div>
+
+             <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="showAvg" 
+                  checked={displayOptions.showAvg}
+                  onCheckedChange={(checked) => setDisplayOptions(prev => ({ ...prev, showAvg: !!checked }))}
+                  className="data-[state=checked]:bg-[#002D56] data-[state=checked]:border-[#002D56]"
+                />
+                <label
+                  htmlFor="showAvg"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  ค่าเฉลี่ยห้อง
+                </label>
+             </div>
+
+             <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="showMin" 
+                  checked={displayOptions.showMin}
+                  onCheckedChange={(checked) => setDisplayOptions(prev => ({ ...prev, showMin: !!checked }))}
+                  className="data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                />
+                <label
+                  htmlFor="showMin"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  คะแนนต่ำสุด
+                </label>
+             </div>
           </div>
         </CardContent>
       </Card>
