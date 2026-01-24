@@ -61,17 +61,20 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="sticky top-0 z-50 w-full border-b border-border/50 bg-card shadow-card"
+      className="sticky top-0 z-50 w-full border-b border-secondary/80 bg-secondary shadow-card"
     >
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img 
-            src="/Logo.png" 
-            alt="IDS Logo" 
-            className="h-20 w-auto object-contain"
-          />
+    
+      <div className="container flex h-20 items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="bg-white rounded-xl shadow-sm flex items-center justify-center">
+            <img 
+              src="/Logo.png" 
+              alt="IDS Logo" 
+              className="h-12 w-auto object-contain"
+            />
+          </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">IDS E-Portfolio System</h1>
+            <h1 className="text-xl font-bold tracking-tight text-white">IDS E-Portfolio System</h1>
           </div>
         </div>
 
@@ -81,7 +84,7 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
         <div className="flex items-center gap-4">
           {/* View Mode Toggle (Admin and Teacher) */}
           {(isAdmin || isTeacher) && onViewModeChange && (
-            <div className="flex rounded-xl bg-muted/70 p-1 border border-border/50">
+            <div className="flex rounded-xl bg-white/10 p-1 border border-white/20">
               <Button
                 variant="ghost"
                 size="sm"
@@ -89,8 +92,8 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
                 className={cn(
                   "relative gap-2 px-3 rounded-lg transition-all font-medium",
                   viewMode === "dashboard"
-                    ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-primary text-white shadow-sm hover:bg-primary/90"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
                 )}
               >
                 <LayoutDashboard className="h-4 w-4" />
@@ -103,8 +106,8 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
                 className={cn(
                   "relative gap-2 px-3 rounded-lg transition-all font-medium",
                   viewMode === "scores"
-                    ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-primary text-white shadow-sm hover:bg-primary/90"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
                 )}
               >
                 <FileSpreadsheet className="h-4 w-4" />
@@ -117,8 +120,8 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
                 className={cn(
                   "relative gap-2 px-3 rounded-lg transition-all font-medium",
                   viewMode === "management"
-                    ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "bg-primary text-white shadow-sm hover:bg-primary/90"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
                 )}
               >
                 <Settings className="h-4 w-4" />
@@ -132,8 +135,8 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
                   className={cn(
                     "relative gap-2 px-3 rounded-lg transition-all font-medium",
                     viewMode === "users"
-                      ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      ? "bg-primary text-white shadow-sm hover:bg-primary/90"
+                      : "text-white/80 hover:text-white hover:bg-white/10"
                   )}
                 >
                   <Shield className="h-4 w-4" />
@@ -144,7 +147,7 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
           )}
 
           {/* Role Badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/50 border border-border/50">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white">
             {getRoleIcon()}
             <span className="text-sm font-medium">{getRoleLabel()}</span>
           </div>
@@ -154,25 +157,25 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
           {/* User Info with Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="flex items-center gap-2 rounded-xl bg-muted/50 px-3 py-2 cursor-pointer hover:bg-muted transition-colors">
-                <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center">
+              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 cursor-pointer hover:bg-white/20 transition-colors border border-white/20">
+                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="Avatar" className="h-8 w-8 rounded-full object-cover" />
                   ) : (
-                    <span className="text-xs font-medium text-primary-foreground">
+                    <span className="text-xs font-medium text-white">
                       {getInitials()}
                     </span>
                   )}
                 </div>
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-sm font-medium text-white">
                     {profile?.full_name || profile?.email || 'ผู้ใช้'}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-white/70">
                     {getRoleLabel()}
                   </p>
                 </div>
-                <ChevronDown className="h-4 w-4 text-muted-foreground hidden sm:block" />
+                <ChevronDown className="h-4 w-4 text-white/70 hidden sm:block" />
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

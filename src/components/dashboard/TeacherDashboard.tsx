@@ -26,13 +26,6 @@ export function TeacherDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" size="icon">
-            <Settings className="h-4 w-4" />
-          </Button>
-        </div>
-      </motion.div>
-
-      {/* Year Selector */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -43,9 +36,14 @@ export function TeacherDashboard() {
         <YearSelector 
           value={selectedYear} 
           onValueChange={setSelectedYear}
-          className="w-[220px]"
+          className="w-[260px]"
         />
       </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Year Selector */}
+
 
       {/* Analytics Dashboard */}
       <AnalyticsDashboard 

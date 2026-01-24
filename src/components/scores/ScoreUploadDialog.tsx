@@ -274,7 +274,8 @@ export function ScoreUploadDialog({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg border-0 hover:from-indigo-600 hover:to-purple-700">
+        
+        <Button className="gap-2 gradient-primary text-primary-foreground rounded-xl">
           <Upload className="h-4 w-4" />
           อัปโหลดคะแนน
         </Button>
