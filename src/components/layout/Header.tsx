@@ -65,11 +65,13 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
     >
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-primary shadow-glow">
-            <GraduationCap className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <img 
+            src="/Logo.png" 
+            alt="IDS Logo" 
+            className="h-20 w-auto object-contain"
+          />
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-foreground">IDS E-Portfolio system</h1>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">IDS E-Portfolio System</h1>
           </div>
         </div>
 
@@ -79,16 +81,16 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
         <div className="flex items-center gap-4">
           {/* View Mode Toggle (Admin and Teacher) */}
           {(isAdmin || isTeacher) && onViewModeChange && (
-            <div className="flex rounded-xl bg-muted p-1">
+            <div className="flex rounded-xl bg-muted/70 p-1 border border-border/50">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => onViewModeChange("dashboard")}
                 className={cn(
-                  "relative gap-2 px-3 rounded-lg transition-all",
+                  "relative gap-2 px-3 rounded-lg transition-all font-medium",
                   viewMode === "dashboard"
-                    ? "bg-card shadow-sm text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                    ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
                 <LayoutDashboard className="h-4 w-4" />
@@ -99,10 +101,10 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
                 size="sm"
                 onClick={() => onViewModeChange("scores")}
                 className={cn(
-                  "relative gap-2 px-3 rounded-lg transition-all",
+                  "relative gap-2 px-3 rounded-lg transition-all font-medium",
                   viewMode === "scores"
-                    ? "bg-card shadow-sm text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                    ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
                 <FileSpreadsheet className="h-4 w-4" />
@@ -113,10 +115,10 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
                 size="sm"
                 onClick={() => onViewModeChange("management")}
                 className={cn(
-                  "relative gap-2 px-3 rounded-lg transition-all",
+                  "relative gap-2 px-3 rounded-lg transition-all font-medium",
                   viewMode === "management"
-                    ? "bg-card shadow-sm text-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                    ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
                 <Settings className="h-4 w-4" />
@@ -128,10 +130,10 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
                   size="sm"
                   onClick={() => onViewModeChange("users")}
                   className={cn(
-                    "relative gap-2 px-3 rounded-lg transition-all",
+                    "relative gap-2 px-3 rounded-lg transition-all font-medium",
                     viewMode === "users"
-                      ? "bg-card shadow-sm text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                      ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
                   )}
                 >
                   <Shield className="h-4 w-4" />

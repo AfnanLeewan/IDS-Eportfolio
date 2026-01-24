@@ -7,127 +7,137 @@
 
 @layer base {
   :root {
-    /* Background: Soft Blue-Gray (Replacing white) */
-    --background: 215 25% 94%;
-    --foreground: 220 30% 15%;
+    /* Background: Light gray-blue tint - matching PSU Islamic Sciences school */
+    --background: 200 20% 97%;
+    /* Very subtle blue-gray tint */
+    --foreground: 210 50% 25%;
+    /* Navy Blue */
 
-    /* Card: Very light Green-tinted off-white */
-    --card: 160 10% 98.5%;
-    --card-foreground: 220 30% 15%;
+    /* Card: Pure White for pop */
+    --card: 0 0% 100%;
+    --card-foreground: 210 50% 25%;
 
-    /* Popover: Slightly Blue-tinted off-white */
-    --popover: 215 15% 98%;
-    --popover-foreground: 220 30% 15%;
+    /* Popover: White */
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 50% 25%;
 
-    /* Primary: Original Green (Deepend for contrast) */
-    --primary: 160 84% 33%;
+    /* Primary: Dark Teal #067575 (180 90% 24%) - exact PSU school color */
+    --primary: 180 90% 24%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Muted Blue-Gray */
-    --secondary: 215 20% 90%;
-    --secondary-foreground: 220 30% 15%;
+    /* Secondary: Navy Blue #1B4F72 (207 62% 28%) */
+    --secondary: 207 62% 28%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Muted: Cool Gray-Blue */
-    --muted: 215 15% 87%;
-    --muted-foreground: 220 15% 45%;
+    /* Muted: Light blue-gray */
+    --muted: 200 20% 94%;
+    --muted-foreground: 210 25% 45%;
 
-    /* Accent: Light Blue-Gray highlight */
-    --accent: 215 25% 92%;
-    --accent-foreground: 220 30% 15%;
+    /* Accent: Light teal tint */
+    --accent: 180 40% 94%;
+    --accent-foreground: 180 80% 22%;
 
     /* Status Colors */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 220 25% 20%;
+    --warning-foreground: 210 50% 25%;
 
-    --success: 160 84% 39%;
+    --success: 160 70% 38%;
     --success-foreground: 0 0% 100%;
 
-    /* Borders: Clearer Gray-Blue boundaries */
-    --border: 215 20% 84%;
-    --input: 215 20% 84%;
-    --ring: 160 84% 39%;
+    /* Borders: Cool gray-blue */
+    --border: 200 20% 88%;
+    --input: 200 20% 88%;
+    --ring: 180 90% 24%;
 
-    --radius: 0.85rem;
+    --radius: 0.75rem;
 
-    /* Charts palette */
-    --chart-1: 160 84% 39%;
-    --chart-2: 210 80% 50%;
+    /* Charts palette - Teal/Navy focused */
+    --chart-1: 180 90% 24%;
+    /* Primary Teal */
+    --chart-2: 207 62% 35%;
+    /* Navy Blue */
     --chart-3: 38 92% 50%;
-    --chart-4: 260 60% 60%;
+    --chart-4: 160 70% 38%;
     --chart-5: 0 84% 60%;
-    --chart-6: 180 70% 45%;
-    --chart-7: 280 65% 55%;
+    --chart-6: 195 85% 40%;
+    --chart-7: 145 60% 40%;
 
-    /* Gradients: Richer transitions */
-    --gradient-primary: linear-gradient(135deg, hsl(160, 84%, 33%) 0%, hsl(210, 80%, 45%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(175, 75%, 40%) 100%);
-    /* Card Gradient: Green-tinted to Blue-tinted */
-    --gradient-card: linear-gradient(180deg, hsl(160, 10%, 98.5%) 0%, hsl(215, 15%, 97.5%) 100%);
-    /* Background Gradient: Deep Blue-Gray slope */
-    --gradient-bg: linear-gradient(135deg, hsl(215, 25%, 94%) 0%, hsl(220, 20%, 91%) 100%);
+    /* Gradients: Teal-Navy Theme */
+    --gradient-primary: linear-gradient(135deg, hsl(180, 90%, 24%) 0%, hsl(207, 62%, 28%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(160, 70%, 38%) 0%, hsl(180, 85%, 28%) 100%);
 
-    /* Shadows: Deepened for the tinted UI */
-    --shadow-card: 0 4px 12px -2px rgb(0 0 0 / 0.1), 0 2px 6px -2px rgb(0 0 0 / 0.05);
-    --shadow-elevated: 0 12px 28px -8px rgb(0 0 0 / 0.15), 0 8px 16px -12px rgb(0 0 0 / 0.1);
-    --shadow-glow: 0 0 40px -10px hsl(160 84% 39% / 0.25);
+    /* Card Gradient: White to very subtle teal tint */
+    --gradient-card: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(200, 20%, 98%) 100%);
 
-    /* Sidebar: Distinguished from Main Background */
-    --sidebar-background: 215 35% 93%;
-    --sidebar-foreground: 220 30% 15%;
-    --sidebar-primary: 160 84% 33%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 25% 90%;
-    --sidebar-accent-foreground: 220 30% 10%;
-    --sidebar-border: 215 20% 85%;
-    --sidebar-ring: 160 84% 39%;
+    /* Background Gradient: Subtle gray-blue Atmosphere */
+    --gradient-bg: linear-gradient(135deg, hsl(200, 25%, 97%) 0%, hsl(210, 30%, 96%) 100%);
+
+    /* Shadows: Teal tinted shadows */
+    --shadow-card: 0 4px 20px -4px rgb(6 117 117 / 0.1), 0 2px 8px -2px rgb(0 0 0 / 0.05);
+    --shadow-elevated: 0 12px 30px -10px rgb(6 117 117 / 0.15), 0 4px 12px -8px rgb(0 0 0 / 0.08);
+    --shadow-glow: 0 0 25px -5px hsl(180 90% 24% / 0.25);
+
+    /* Sidebar - Deep Teal themed - matching school sidebar */
+    --sidebar-background: 180 90% 24%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 180 90% 24%;
+    --sidebar-accent: 180 85% 20%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 180 80% 28%;
+    --sidebar-ring: 0 0% 100%;
   }
 
   .dark {
-    --background: 220 25% 10%;
-    --foreground: 160 20% 95%;
+    /* Richer Dark Mode - Teal/Navy Theme */
+    --background: 210 40% 10%;
+    /* Deep Navy-Black */
+    --foreground: 180 15% 97%;
 
-    --card: 220 25% 14%;
-    --card-foreground: 160 20% 95%;
+    --card: 210 35% 13%;
+    --card-foreground: 180 15% 97%;
 
-    --popover: 220 25% 14%;
-    --popover-foreground: 160 20% 95%;
+    --popover: 210 35% 13%;
+    --popover-foreground: 180 15% 97%;
 
-    --primary: 160 70% 45%;
-    --primary-foreground: 220 25% 10%;
+    --primary: 180 85% 30%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 20% 18%;
-    --secondary-foreground: 160 20% 90%;
+    --secondary: 207 55% 35%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 20% 18%;
-    --muted-foreground: 160 15% 60%;
+    --muted: 210 30% 18%;
+    --muted-foreground: 210 20% 70%;
 
-    --accent: 160 60% 40%;
-    --accent-foreground: 220 25% 10%;
+    --accent: 210 30% 20%;
+    --accent-foreground: 180 50% 85%;
 
-    --destructive: 15 70% 50%;
-    --destructive-foreground: 160 20% 95%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 98%;
 
     --warning: 38 80% 45%;
-    --warning-foreground: 160 20% 95%;
+    --warning-foreground: 0 0% 98%;
 
-    --success: 160 70% 45%;
-    --success-foreground: 220 25% 10%;
+    --success: 160 70% 38%;
+    --success-foreground: 0 0% 100%;
 
-    --border: 220 20% 20%;
-    --input: 220 20% 20%;
-    --ring: 160 70% 45%;
+    --border: 210 30% 20%;
+    --input: 210 30% 20%;
+    --ring: 180 85% 30%;
 
-    --sidebar-background: 220 25% 12%;
-    --sidebar-foreground: 160 20% 95%;
-    --sidebar-primary: 160 70% 45%;
-    --sidebar-primary-foreground: 220 25% 10%;
-    --sidebar-accent: 220 20% 18%;
-    --sidebar-accent-foreground: 160 20% 90%;
-    --sidebar-border: 220 20% 20%;
-    --sidebar-ring: 160 70% 45%;
+    --gradient-bg: linear-gradient(135deg, hsl(210, 40%, 10%) 0%, hsl(210, 40%, 8%) 100%);
+
+    --sidebar-background: 210 35% 11%;
+    --sidebar-foreground: 180 15% 95%;
+    --sidebar-primary: 180 85% 30%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 30% 18%;
+    --sidebar-accent-foreground: 180 50% 90%;
+    --sidebar-border: 210 30% 20%;
+    --sidebar-ring: 180 85% 30%;
   }
 }
 
@@ -139,6 +149,7 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    /* Updated gradient bg for more color */
     background: var(--gradient-bg);
     min-height: 100vh;
   }
@@ -183,10 +194,10 @@
   }
 
   .glass {
-    @apply bg-card/90 backdrop-blur-xl border border-border/50;
+    @apply bg-white/60 backdrop-blur-xl border border-white/40 shadow-sm supports-[backdrop-filter]:bg-white/60;
   }
 
   .card-mint {
-    @apply bg-card shadow-card border-0;
+    @apply bg-card shadow-card border border-border;
   }
 }

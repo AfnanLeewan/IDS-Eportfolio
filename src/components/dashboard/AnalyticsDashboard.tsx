@@ -257,13 +257,7 @@ export function AnalyticsDashboard({
         animate={{ opacity: 1, y: 0 }}
         className="space-y-4"
       >
-        <Card className="shadow-card border-0 rounded-2xl">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Filter className="h-5 w-5 text-primary" />
-              ตัวกรองการวิเคราะห์
-            </CardTitle>
-          </CardHeader>
+        <Card className="shadow-card border-0 rounded-2xl pt-3">
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {/* Program Select */}
