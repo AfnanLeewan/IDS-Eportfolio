@@ -7,66 +7,81 @@
 
 @layer base {
   :root {
-    --background: 160 30% 96%;
-    --foreground: 220 20% 20%;
+    /* Background: Soft Blue-Gray (Replacing white) */
+    --background: 215 25% 94%;
+    --foreground: 220 30% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 20% 20%;
+    /* Card: Very light Green-tinted off-white */
+    --card: 160 10% 98.5%;
+    --card-foreground: 220 30% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 20%;
+    /* Popover: Slightly Blue-tinted off-white */
+    --popover: 215 15% 98%;
+    --popover-foreground: 220 30% 15%;
 
-    --primary: 160 84% 39%;
+    /* Primary: Original Green (Deepend for contrast) */
+    --primary: 160 84% 33%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 20% 95%;
-    --secondary-foreground: 160 84% 30%;
+    /* Secondary: Muted Blue-Gray */
+    --secondary: 215 20% 90%;
+    --secondary-foreground: 220 30% 15%;
 
-    --muted: 160 15% 93%;
-    --muted-foreground: 220 10% 50%;
+    /* Muted: Cool Gray-Blue */
+    --muted: 215 15% 87%;
+    --muted-foreground: 220 15% 45%;
 
-    --accent: 160 60% 45%;
-    --accent-foreground: 0 0% 100%;
+    /* Accent: Light Blue-Gray highlight */
+    --accent: 215 25% 92%;
+    --accent-foreground: 220 30% 15%;
 
-    --destructive: 15 85% 60%;
-    --destructive-foreground: 0 0% 100%;
+    /* Status Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
     --warning: 38 92% 50%;
-    --warning-foreground: 220 20% 20%;
+    --warning-foreground: 220 25% 20%;
 
     --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
 
-    --border: 160 20% 90%;
-    --input: 160 20% 90%;
+    /* Borders: Clearer Gray-Blue boundaries */
+    --border: 215 20% 84%;
+    --input: 215 20% 84%;
     --ring: 160 84% 39%;
 
-    --radius: 0.75rem;
+    --radius: 0.85rem;
 
+    /* Charts palette */
     --chart-1: 160 84% 39%;
-    --chart-2: 200 80% 50%;
+    --chart-2: 210 80% 50%;
     --chart-3: 38 92% 50%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 15 85% 60%;
-    --chart-6: 220 70% 55%;
-    --chart-7: 300 70% 50%;
+    --chart-4: 260 60% 60%;
+    --chart-5: 0 84% 60%;
+    --chart-6: 180 70% 45%;
+    --chart-7: 280 65% 55%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(180, 70%, 45%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(160, 70%, 50%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(160, 30%, 98%) 100%);
-    --gradient-bg: linear-gradient(135deg, hsl(160, 40%, 94%) 0%, hsl(180, 30%, 90%) 50%, hsl(160, 35%, 92%) 100%);
-    
-    --shadow-card: 0 2px 8px -2px rgb(0 0 0 / 0.08), 0 4px 16px -4px rgb(0 0 0 / 0.04);
-    --shadow-elevated: 0 8px 24px -8px rgb(0 0 0 / 0.12), 0 16px 32px -16px rgb(0 0 0 / 0.08);
-    --shadow-glow: 0 0 40px -10px hsl(160 84% 39% / 0.4);
+    /* Gradients: Richer transitions */
+    --gradient-primary: linear-gradient(135deg, hsl(160, 84%, 33%) 0%, hsl(210, 80%, 45%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(160, 84%, 39%) 0%, hsl(175, 75%, 40%) 100%);
+    /* Card Gradient: Green-tinted to Blue-tinted */
+    --gradient-card: linear-gradient(180deg, hsl(160, 10%, 98.5%) 0%, hsl(215, 15%, 97.5%) 100%);
+    /* Background Gradient: Deep Blue-Gray slope */
+    --gradient-bg: linear-gradient(135deg, hsl(215, 25%, 94%) 0%, hsl(220, 20%, 91%) 100%);
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 220 20% 20%;
-    --sidebar-primary: 160 84% 39%;
+    /* Shadows: Deepened for the tinted UI */
+    --shadow-card: 0 4px 12px -2px rgb(0 0 0 / 0.1), 0 2px 6px -2px rgb(0 0 0 / 0.05);
+    --shadow-elevated: 0 12px 28px -8px rgb(0 0 0 / 0.15), 0 8px 16px -12px rgb(0 0 0 / 0.1);
+    --shadow-glow: 0 0 40px -10px hsl(160 84% 39% / 0.25);
+
+    /* Sidebar: Distinguished from Main Background */
+    --sidebar-background: 215 35% 93%;
+    --sidebar-foreground: 220 30% 15%;
+    --sidebar-primary: 160 84% 33%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 20% 95%;
-    --sidebar-accent-foreground: 160 84% 30%;
-    --sidebar-border: 160 20% 90%;
+    --sidebar-accent: 210 25% 90%;
+    --sidebar-accent-foreground: 220 30% 10%;
+    --sidebar-border: 215 20% 85%;
     --sidebar-ring: 160 84% 39%;
   }
 
@@ -128,7 +143,12 @@
     min-height: 100vh;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-semibold tracking-tight;
   }
 

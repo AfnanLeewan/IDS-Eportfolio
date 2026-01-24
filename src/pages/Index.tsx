@@ -27,12 +27,12 @@ const Index = () => {
     }
   }, [user, loading, navigate]);
 
-  if (loading || (isStudent && isStudentLoading)) {
+  if (loading || !role || (isStudent && isStudentLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">กำลังโหลด...</p>
+          <p className="text-muted-foreground">กำลังโหลดข้อมูล...</p>
         </div>
       </div>
     );
@@ -44,17 +44,24 @@ const Index = () => {
 
   const renderContent = () => {
     // Student can only see their dashboard
-    if (isStudent && currentStudent) {
+    if (isStudent) {
+      if (currentStudent) {
+        return (
+          <motion.div
+            key="student"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <StudentDashboard student={currentStudent} />
+          </motion.div>
+        );
+      }
       return (
-        <motion.div
-          key="student"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
-        >
-          <StudentDashboard student={currentStudent} />
-        </motion.div>
+        <div className="flex h-[50vh] items-center justify-center text-muted-foreground">
+          <p>Student profile not found. Please contact administrator.</p>
+        </div>
       );
     }
 

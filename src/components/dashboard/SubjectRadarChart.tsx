@@ -72,15 +72,7 @@ export function SubjectRadarChart({
                   fillOpacity={0.3}
                   strokeWidth={2}
                 />
-                <Radar
-                  name="Class Average"
-                  dataKey="classAverage"
-                  stroke="#3B82F6"
-                  fill="#3B82F6"
-                  fillOpacity={0.15}
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                />
+
                 <Legend
                   wrapperStyle={{ paddingTop: "20px" }}
                   formatter={(value) => (
