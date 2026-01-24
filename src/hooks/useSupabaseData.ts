@@ -1677,9 +1677,8 @@ export function useCreateUser() {
         p_email: data.email,
         p_password: data.password,
         p_full_name: data.fullName,
-        p_role: data.role,
-        p_created_by: adminUser?.id
-      });
+        p_role: data.role
+      } as any);
       
       if (error) throw error;
       

@@ -23,6 +23,7 @@ interface UserCSVRow {
   password: string;
   role: string;
   class?: string; // Optional class name for students
+  student_id?: string; // Optional student ID (e.g. school ID)
 }
 
 export function UserCSVUpload() {
@@ -59,13 +60,14 @@ export function UserCSVUpload() {
           email: r.email,
           password: r.password,
           role: r.role.toLowerCase(), // Normalize role
-          class: r['class'] || r['class_name'] || ''
+          class: r['class'] || r['class_name'] || '',
+          student_id: r['student_id'] || r['studentId'] || ''
         }));
         
         if (validRows.length === 0) {
           toast({
             title: "Error",
-            description: "No valid rows found. Check column headers: name, email, password, role, class",
+            description: "No valid rows found. Check column headers: name, email, password, role, class, student_id",
             variant: "destructive"
           });
           setFile(null);
@@ -120,22 +122,23 @@ export function UserCSVUpload() {
                     }
                 }
 
-                if (userId) { // Should always be true if mutation succeeded
-                     // Note: useCreateStudent requires 'id' (student id), we can generate one or let DB handle if we modify hook. 
-                     // Assuming we can pass a random UUID or empty string if hook/DB allows.
-                     // The hook definition in useSupabaseData.ts line 595: id: string. 
-                     // Supabase default usually gen_random_uuid().
-                     // We'll generate one here to be safe.
-                     const studentId = crypto.randomUUID();
+                if (userId) { 
+                     // Use provided student_id or generate a new one if missing
+                     const studentId = row.student_id && row.student_id.trim() !== '' 
+                        ? row.student_id 
+                        : crypto.randomUUID();
                      
+                     if (!row.student_id) {
+                        addLog(`ℹ️ No student_id provided for ${row.name}, generated random ID: ${studentId}`);
+                     }
+
                      await createStudentMutation.mutateAsync({
                          id: studentId,
                          name: row.name,
                          email: row.email,
                          user_id: userId,
-                         class_id: classId || undefined // Passes undefined if no class
-                     } as any); // Cast because class_id might be expected string but undefined is usually handled by suppression or if we pass empty string
-                     // Actually checking hook type: class_id is string. If empty string works?
+                         class_id: classId || undefined 
+                     } as any); 
                 }
             }
             successCount++;
@@ -154,7 +157,7 @@ export function UserCSVUpload() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = "name,email,password,role,class\nJohn Doe,john@example.com,pass1234,student,M.6/1\nTeacher A,teacher@school.com,securepass,teacher,";
+    const csvContent = "name,email,password,role,class,student_id\nJohn Doe,john@example.com,pass1234,student,M.6/1,64001\nTeacher A,teacher@school.com,securepass,teacher,,";
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
