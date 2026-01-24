@@ -78,11 +78,7 @@ export function SubTopicComparisonChart({
     });
   }, [selectedSubject, students]);
 
-  const getBarColor = (value: number) => {
-    if (value >= 80) return "hsl(160, 84%, 39%)"; // emerald
-    if (value >= 60) return "hsl(43, 96%, 56%)"; // amber
-    return "hsl(0, 84%, 60%)"; // red
-  };
+
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -91,10 +87,10 @@ export function SubTopicComparisonChart({
         <div className="bg-background border border-border rounded-lg shadow-lg p-3">
           <p className="font-medium text-foreground">{data.fullName}</p>
           <p className="text-sm text-muted-foreground">
-            เฉลี่ย: <span className="font-semibold text-foreground">{data.average}%</span>
-          </p>
-          <p className="text-sm text-muted-foreground">
             สูงสุด: <span className="font-semibold text-primary">{data.maxScore}%</span>
+          </p>
+                    <p className="text-sm text-muted-foreground">
+            เฉลี่ย: <span className="font-semibold text-foreground">{data.average}%</span>
           </p>
           <p className="text-sm text-muted-foreground">
             ต่ำสุด: <span className="font-semibold text-destructive">{data.minScore}%</span>
@@ -168,44 +164,26 @@ export function SubTopicComparisonChart({
                 <Bar
                   dataKey="maxScore"
                   name="คะแนนสูงสุด"
-                  fill="hsl(var(--primary))"
+                  fill="hsl(var(--success))"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={30}
+                  maxBarSize={20}
                 />
                 <Bar
                   dataKey="average"
                   name="ค่าเฉลี่ยห้อง"
+                  fill="#002D56"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={30}
-                >
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={getBarColor(entry.average)} />
-                  ))}
-                </Bar>
+                  maxBarSize={20}
+                />
                 <Bar
                   dataKey="minScore"
                   name="คะแนนต่ำสุด"
                   fill="hsl(var(--destructive))"
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={30}
+                  maxBarSize={20}
                 />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-          {/* Score Legend */}
-          <div className="flex items-center justify-center gap-6 pt-4 border-t border-border mt-4">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: "hsl(0, 84%, 60%)" }} />
-              <span className="text-xs text-muted-foreground">{"<60%"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: "hsl(43, 96%, 56%)" }} />
-              <span className="text-xs text-muted-foreground">60-80%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: "hsl(160, 84%, 39%)" }} />
-              <span className="text-xs text-muted-foreground">≥80%</span>
-            </div>
           </div>
         </CardContent>
       </Card>
