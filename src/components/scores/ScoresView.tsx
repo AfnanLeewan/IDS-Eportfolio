@@ -36,18 +36,26 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
-  mockStudents,
-  classGroups,
-  preALevelProgram,
-  getSubjectScore,
-  getTotalScore,
-  getClassAverage,
   Student,
   Subject,
 } from "@/lib/mockData";
-import { useSubjectWithTopics, useClasses } from '@/hooks/useSupabaseData';
+import {
+  useSubjectWithTopics,
+  useCurrentAcademicYear,
+  useYearPrograms,
+  useYearClasses,
+  useClassScores,
+  useUpdateStudentScores,
+  useUpdateStudentScore,
+  useDeleteStudentSubjectScores,
+  useCreateStudent,
+  useAcademicYears,
+  useTeacherAssignments
+} from '@/hooks/useSupabaseData';
+import { useAuth } from '@/contexts/AuthContext';
+import { YearSelector } from '@/components/common/YearSelector';
 import { ScoreEditDialog } from "./ScoreEditDialog";
-import { AddStudentScoreDialog } from "./AddStudentScoreDialog";
+import { ScoreUploadDialog } from "./ScoreUploadDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,55 +77,136 @@ interface ScoresViewProps {
   students?: Student[];
 }
 
-export function ScoresView({ students: initialStudents = mockStudents }: ScoresViewProps) {
-  // Database hooks for subjects and classes
-  const { data: subjectsFromDB = [], isLoading: subjectsLoading, error: subjectsError } = useSubjectWithTopics('pre-a-level');
-  const { data: classesFromDB = [] } = useClasses();
-  
-  // Debug logging
-  console.log('🔍 ScoresView Debug:', {
-    subjectsFromDB,
-    subjectsCount: subjectsFromDB.length,
-    isLoading: subjectsLoading,
-    error: subjectsError
+// Logic to calculate score for a specific subject
+const calculateSubjectScore = (student: Student, subject: Subject) => {
+  let totalScore = 0;
+  let totalMaxScore = 0;
+
+  subject.subTopics.forEach((subTopic) => {
+    const scoreEntry = student.scores?.find((s) => s.subTopicId === subTopic.id);
+    totalScore += scoreEntry?.score || 0;
+    totalMaxScore += subTopic.maxScore;
   });
+
+  return {
+    score: totalScore,
+    maxScore: totalMaxScore,
+    percentage: totalMaxScore > 0 ? (totalScore / totalMaxScore) * 100 : 0,
+  };
+};
+
+export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) {
+  // Permissions
+  const { user, role } = useAuth();
+  const isTeacher = role === 'teacher';
+  const isAdmin = role === 'admin';
+  const { data: assignments = [] } = useTeacherAssignments(isTeacher ? user?.id : undefined);
+
+  // Mutation hooks
+  const updateScoresMutation = useUpdateStudentScores();
+  const updateScoreMutation = useUpdateStudentScore();
+
+  const createStudentMutation = useCreateStudent();
+
+  // Academic year selection
+  const { data: currentYear } = useCurrentAcademicYear();
+  const { data: allYears = [] } = useAcademicYears();
   
-  const [students, setStudents] = useState<Student[]>(initialStudents);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const activeYear = selectedYear || currentYear?.year_number || 2568;
+  const activeYearObj = allYears.find(y => y.year_number === activeYear);
+  const activeYearId = activeYearObj?.id || currentYear?.id;
+
+  
+  // Program selection
+  const { data: programs = [], isLoading: programsLoading } = useYearPrograms(activeYearId);
+  const [selectedProgramId, setSelectedProgramId] = useState<string>("");
+  
+  // Auto-select first program when programs load
+  // Auto-select first program when programs load or change
+  useEffect(() => {
+    if (programs.length > 0) {
+      const isValid = programs.find((p: any) => p.program_id === selectedProgramId);
+      if (!isValid) {
+        setSelectedProgramId(programs[0].program_id);
+      }
+    } else {
+      setSelectedProgramId("");
+    }
+  }, [programs, selectedProgramId]);
+  
+  // Database hooks for subjects and classes
+  const { data: subjectsFromDB = [], isLoading: subjectsLoading, error: subjectsError } = useSubjectWithTopics(selectedProgramId || 'none');
+  const { data: classesFromDB = [], isLoading: classesLoading } = useYearClasses(activeYearId);
+  
+  // UI state
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
   
-  // Get class-specific subjects when a class is selected
-  const { data: classSubjects = [] } = useClassSubjects(selectedClass);
+  // Load students with scores using useClassScores
+  const { data: studentsWithScoresFromDB = [], isLoading: studentsLoading } = useClassScores(selectedClass);
+
+  // Map DB data to component format
+  const students = useMemo(() => {
+    if (studentsWithScoresFromDB && studentsWithScoresFromDB.length > 0) {
+      return studentsWithScoresFromDB.map((dbStudent: any) => ({
+        id: dbStudent.id,
+        name: dbStudent.name,
+        classId: dbStudent.class_id,
+        scores: dbStudent.student_scores?.map((score: any) => ({
+          subTopicId: score.sub_topic_id,
+          score: score.score,
+          // We might need to add maxScore here if the component needs it, 
+          // but for now let's stick to the structure
+        })) || []
+      }));
+    }
+    return []; // Return empty if no data yet (or fall back to initialStudents if testing)
+  }, [studentsWithScoresFromDB]);
   
   // CRUD state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedSubjectForEdit, setSelectedSubjectForEdit] = useState<Subject | null>(null);
-  const [studentToDelete, setStudentToDelete] = useState<{ student: Student; subject: Subject } | null>(null);
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS!
-  // This ensures hooks are always called in the same order
-  
+
   const filteredStudents = useMemo(() => {
+    // Determine valid classes for the current year context
+    const validClassIds = classesFromDB.length > 0 
+      ? new Set(classesFromDB.map((c: any) => c.class_id)) 
+      : null;
+
     return students.filter((student) => {
+      // Enforce year validation: User must be in a class belonging to this year
+      if (validClassIds && !validClassIds.has(student.classId)) return false;
+
+      // Class filter is already handled by useClassScores if selectedClass is not 'all'
+      // But we double check here just in case useClassScores behavior changes
       const matchesClass = selectedClass === "all" || student.classId === selectedClass;
       const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         student.id.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesClass && matchesSearch;
     });
-  }, [students, selectedClass, searchQuery]);
+  }, [students, selectedClass, searchQuery, classesFromDB]);
 
   // Use database subjects and map to component format
   const subjects = useMemo(() => {
     if (!subjectsFromDB || subjectsFromDB.length === 0) return [];
     
-    const dbSubjects = selectedSubject === "all" 
-      ? subjectsFromDB
-      : subjectsFromDB.filter(s => s.id === selectedSubject);
+    let dbSubjects = subjectsFromDB;
+
+    // Filter for teachers
+    if (isTeacher && !isAdmin) {
+      const assignedIds = new Set(assignments.map((a: any) => a.subject_id));
+      dbSubjects = dbSubjects.filter(s => assignedIds.has(s.id));
+    }
+    
+    if (selectedSubject !== "all") {
+       dbSubjects = dbSubjects.filter(s => s.id === selectedSubject);
+    }
     
     // Map database format (snake_case) to component format (camelCase)
     return dbSubjects.map(subject => ({
@@ -223,101 +312,73 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
     setEditDialogOpen(true);
   };
 
-  const handleAddClick = (subject: Subject) => {
-    setSelectedSubjectForEdit(subject);
-    setAddDialogOpen(true);
-  };
 
-  const handleDeleteClick = (student: Student, subject: Subject) => {
-    setStudentToDelete({ student, subject });
-    setDeleteDialogOpen(true);
-  };
 
-  const handleSaveScores = (studentId: string, newScores: { subTopicId: string; score: number }[]) => {
-    setStudents((prev) =>
-      prev.map((student) => {
-        if (student.id !== studentId) return student;
-        const updatedScores = student.scores.map((score) => {
-          const newScore = newScores.find((ns) => ns.subTopicId === score.subTopicId);
-          return newScore ? { ...score, score: newScore.score } : score;
-        });
-        return { ...student, scores: updatedScores };
-      })
-    );
-    toast.success("อัปเดตคะแนนเรียบร้อยแล้ว");
-  };
 
-  const handleInlineScoreUpdate = (studentId: string, subTopicId: string, newScore: number) => {
-    setStudents((prev) =>
-      prev.map((student) => {
-        if (student.id !== studentId) return student;
-        const updatedScores = student.scores.map((score) => {
-          if (score.subTopicId === subTopicId) {
-            return { ...score, score: newScore };
-          }
-          return score;
-        });
-        return { ...student, scores: updatedScores };
-      })
-    );
-    toast.success("อัปเดตคะแนนแล้ว");
-  };
 
-  const handleAddStudent = (newStudent: {
-    id: string;
-    name: string;
-    classId: string;
-    scores: { subTopicId: string; score: number }[];
-  }) => {
-    // Check if student already exists
-    const existingStudent = students.find((s) => s.id === newStudent.id);
-    if (existingStudent) {
-      // Add new scores to existing student
-      setStudents((prev) =>
-        prev.map((student) => {
-          if (student.id !== newStudent.id) return student;
-          const existingScoreIds = new Set(student.scores.map((s) => s.subTopicId));
-          const additionalScores = newStudent.scores.filter(
-            (ns) => !existingScoreIds.has(ns.subTopicId)
-          );
-          return {
-            ...student,
-            scores: [...student.scores, ...additionalScores],
-          };
-        })
-      );
-    } else {
-      // Create new student with scores
-      const fullStudent: Student = {
-        id: newStudent.id,
-        name: newStudent.name,
-        classId: newStudent.classId,
-        scores: newStudent.scores,
-      };
-      setStudents((prev) => [...prev, fullStudent]);
+  // const handleSaveScores = (studentId: string, newScores: { subTopicId: string; score: number }[]) => {
+  //   setStudents((prev) =>
+  //     prev.map((student) => {
+  //       if (student.id !== studentId) return student;
+  //       const updatedScores = student.scores.map((score) => {
+  //         const newScore = newScores.find((ns) => ns.subTopicId === score.subTopicId);
+  //         return newScore ? { ...score, score: newScore.score } : score;
+  //       });
+  //       return { ...student, scores: updatedScores };
+  //     })
+  //   );
+  //   toast.success("อัปเดตคะแนนเรียบร้อยแล้ว");
+  // };
+
+  // Handlers
+  const handleSaveScores = async (studentId: string, newScores: { subTopicId: string; score: number }[]) => {
+    try {
+       await updateScoresMutation.mutateAsync({
+         studentId,
+         scores: newScores,
+         academicYear: activeYear
+       });
+       setEditDialogOpen(false);
+    } catch (error) {
+      console.error("Failed to save scores:", error);
     }
-    toast.success("เพิ่มนักเรียนเรียบร้อยแล้ว");
   };
 
-  const handleDeleteStudent = () => {
-    if (!studentToDelete) return;
-    const { student, subject } = studentToDelete;
+  const handleInlineScoreUpdate = async (studentId: string, subTopicId: string, newScore: number) => {
+    try {
+      await updateScoreMutation.mutateAsync({
+        studentId,
+        subTopicId,
+        score: newScore,
+        academicYear: activeYear
+      });
+    } catch (error) {
+      console.error("Failed to update score inline:", error);
+    }
+  };
+
+
+
+
+
+  // Calculate total score across all subjects
+  const getStudentTotalScore = (student: Student) => {
+    if (!subjects.length) return { score: 0, maxScore: 0, percentage: 0 };
     
-    // Remove scores for this subject from the student
-    setStudents((prev) =>
-      prev.map((s) => {
-        if (s.id !== student.id) return s;
-        const subTopicIds = new Set(subject.subTopics.map((st) => st.id));
-        return {
-          ...s,
-          scores: s.scores.filter((score) => !subTopicIds.has(score.subTopicId)),
-        };
-      })
-    );
+    let totalScore = 0;
+    let totalMaxScore = 0;
     
-    setDeleteDialogOpen(false);
-    setStudentToDelete(null);
-    toast.success("ลบคะแนนนักเรียนเรียบร้อยแล้ว");
+    subjects.forEach(subject => {
+      const { score, maxScore } = calculateSubjectScore(student, subject);
+      totalScore += score;
+      totalMaxScore += maxScore;
+    });
+    
+    return {
+      score: totalScore,
+      maxScore: totalMaxScore,
+      percentage: totalMaxScore > 0 ? (totalScore / totalMaxScore) * 100 : 0
+    };
   };
 
   return (
@@ -327,56 +388,88 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
         <div>
           <h2 className="text-2xl font-bold text-foreground">รายงานคะแนน</h2>
           <p className="text-muted-foreground">
-            ดูคะแนนละเอียดของนักเรียนทุกคน แยกตามห้องเรียนและวิชา
+            {programs.find(p => p.program_id === selectedProgramId)?.program_name || 'เลือกโครงการ'} • ปีการศึกษา {activeYear}
           </p>
         </div>
-        <Button className="gap-2 gradient-primary text-primary-foreground rounded-xl">
-          <Download className="h-4 w-4" />
-          ส่งออกรายงาน
-        </Button>
+        <div className="flex gap-2">
+          <ScoreUploadDialog 
+            programId={selectedProgramId} 
+            subjectId={selectedSubject !== "all" ? selectedSubject : undefined}
+            activeYearId={activeYearId}
+          />
+  
+        </div>
       </div>
 
       {/* Filters */}
       <Card className="border-0 shadow-card">
         <CardContent className="pt-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="ค้นหาชื่อหรือรหัสนักเรียน..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-border bg-muted/50 py-2.5 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              />
+          <div className="flex flex-col gap-4">
+            {/* Program Selector - NEW! */}
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                โครงการ:
+              </label>
+              <Select value={selectedProgramId} onValueChange={setSelectedProgramId}>
+                <SelectTrigger className="w-[220px] rounded-xl">
+                  <SelectValue placeholder="เลือกโครงการ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {programs.map((program: any) => (
+                    <SelectItem key={program.program_id} value={program.program_id}>
+                      {program.program_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {programsLoading && <span className="text-sm text-muted-foreground">กำลังโหลด...</span>}
             </div>
-            <div className="flex gap-3">
-              <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger className="w-[160px] rounded-xl">
-                  <SelectValue placeholder="เลือกห้องเรียน" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทุกห้องเรียน</SelectItem>
-                  {classGroups.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="w-[180px] rounded-xl">
-                  <SelectValue placeholder="เลือกวิชา" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">ทุกวิชา</SelectItem>
-                  {preALevelProgram.subjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            
+            {/* Search and Filters */}
+            <div className="flex flex-col gap-4 md:flex-row md:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="ค้นหาชื่อหรือรหัสนักเรียน..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-muted/50 py-2.5 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+              </div>
+              <div className="flex gap-3">
+                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                  <SelectTrigger className="w-[160px] rounded-xl">
+                    <SelectValue placeholder="เลือกห้องเรียน" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกห้องเรียน</SelectItem>
+                    {classesFromDB.map((cls: any) => (
+                      <SelectItem key={cls.class_id} value={cls.class_id}>
+                        {cls.class_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                  <SelectTrigger className="w-[180px] rounded-xl">
+                    <SelectValue placeholder="เลือกวิชา" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">ทุกวิชา</SelectItem>
+                    {subjectsFromDB.map((subject: any) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <YearSelector 
+                  value={selectedYear} 
+                  onValueChange={setSelectedYear}
+                  className="w-[200px]"
+                />
+              </div>
             </div>
           </div>
         </CardContent>
@@ -394,7 +487,9 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">ค่าเฉลี่ยห้อง</p>
             <p className="text-3xl font-bold text-emerald-600">
-              {(filteredStudents.reduce((acc, s) => acc + getTotalScore(s).percentage, 0) / filteredStudents.length || 0).toFixed(1)}%
+              {(filteredStudents.length > 0 
+                ? (filteredStudents.reduce((acc, s) => acc + getStudentTotalScore(s).percentage, 0) / filteredStudents.length).toFixed(1)
+                : "0.0")}%
             </p>
           </CardContent>
         </Card>
@@ -402,7 +497,9 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">คะแนนสูงสุด</p>
             <p className="text-3xl font-bold text-blue-600">
-              {Math.max(...filteredStudents.map(s => getTotalScore(s).percentage)).toFixed(1)}%
+              {filteredStudents.length > 0 
+                ? Math.max(...filteredStudents.map(s => getStudentTotalScore(s).percentage)).toFixed(1)
+                : "0.0"}%
             </p>
           </CardContent>
         </Card>
@@ -410,7 +507,9 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">คะแนนต่ำสุด</p>
             <p className="text-3xl font-bold text-amber-600">
-              {Math.min(...filteredStudents.map(s => getTotalScore(s).percentage)).toFixed(1)}%
+              {filteredStudents.length > 0 
+                ? Math.min(...filteredStudents.map(s => getStudentTotalScore(s).percentage)).toFixed(1)
+                : "0.0"}%
             </p>
           </CardContent>
         </Card>
@@ -423,15 +522,16 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
             key={subject.id}
             subject={subject}
             students={filteredStudents}
+            classes={classesFromDB}
             isExpanded={expandedSubjects.includes(subject.id)}
             onToggle={() => toggleSubject(subject.id)}
             getScoreColor={getScoreColor}
             getScoreBadge={getScoreBadge}
             getTrendIcon={getTrendIcon}
             onEdit={handleEditClick}
-            onDelete={handleDeleteClick}
-            onAdd={handleAddClick}
+
             onInlineScoreUpdate={handleInlineScoreUpdate}
+            calculateSubjectScore={calculateSubjectScore}
           />
         ))}
       </TooltipProvider>
@@ -445,29 +545,9 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
         onSave={handleSaveScores}
       />
 
-      <AddStudentScoreDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-        subject={selectedSubjectForEdit}
-        onAdd={handleAddStudent}
-      />
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>ลบคะแนนนักเรียน</AlertDialogTitle>
-            <AlertDialogDescription>
-              คุณแน่ใจหรือไม่ว่าต้องการลบคะแนนของ {studentToDelete?.student.name} ในวิชา {studentToDelete?.subject.name}? การกระทำนี้ไม่สามารถย้อนกลับได้
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteStudent} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              ลบ
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
+
     </div>
   );
 }
@@ -475,29 +555,29 @@ export function ScoresView({ students: initialStudents = mockStudents }: ScoresV
 interface SubjectScoreTableProps {
   subject: Subject;
   students: Student[];
+  classes: any[];
   isExpanded: boolean;
   onToggle: () => void;
   getScoreColor: (percentage: number) => string;
   getScoreBadge: (percentage: number) => { label: string; className: string };
   getTrendIcon: (studentScore: number, classAverage: number) => React.ReactNode;
   onEdit: (student: Student, subject: Subject) => void;
-  onDelete: (student: Student, subject: Subject) => void;
-  onAdd: (subject: Subject) => void;
   onInlineScoreUpdate: (studentId: string, subTopicId: string, newScore: number) => void;
+  calculateSubjectScore: (student: Student, subject: Subject) => { score: number; maxScore: number; percentage: number };
 }
 
 function SubjectScoreTable({
   subject,
   students,
+  classes,
   isExpanded,
   onToggle,
   getScoreColor,
   getScoreBadge,
   getTrendIcon,
   onEdit,
-  onDelete,
-  onAdd,
   onInlineScoreUpdate,
+  calculateSubjectScore,
 }: SubjectScoreTableProps) {
   const [editingCell, setEditingCell] = useState<{ studentId: string; subTopicId: string } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
@@ -509,7 +589,8 @@ function SubjectScoreTable({
       return { average: 0, highest: 0, lowest: 0, totalStudents: 0 };
     }
     
-    const percentages = students.map(s => getSubjectScore(s, subject.id).percentage);
+    // Use the passed helper instead of getSubjectScore
+    const percentages = students.map(s => calculateSubjectScore(s, subject).percentage);
     const average = percentages.reduce((acc, p) => acc + p, 0) / percentages.length;
     const highest = Math.max(...percentages);
     const lowest = Math.min(...percentages);
@@ -520,7 +601,7 @@ function SubjectScoreTable({
       lowest,
       totalStudents: students.length,
     };
-  }, [students, subject.id]);
+  }, [students, subject, calculateSubjectScore]);
 
   const subjectAverage = subjectStats.average;
 
@@ -617,21 +698,6 @@ function SubjectScoreTable({
                   </p>
                 </div>
               </div>
-
-              {/* Add Button */}
-              <div className="flex justify-end mb-4">
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAdd(subject);
-                  }}
-                  className="gap-2 gradient-primary text-primary-foreground"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Student
-                </Button>
-              </div>
               <div className="rounded-xl border border-border overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -652,13 +718,14 @@ function SubjectScoreTable({
                       <TableHead className="text-center font-semibold">Total</TableHead>
                       <TableHead className="text-center font-semibold">%</TableHead>
                       <TableHead className="text-center font-semibold">vs Avg</TableHead>
-                      <TableHead className="text-center font-semibold">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {students.map((student) => {
-                      const subjectScore = getSubjectScore(student, subject.id);
-                      const classGroup = classGroups.find(c => c.id === student.classId);
+                      // Use the passed helper
+                      const subjectScore = calculateSubjectScore(student, subject);
+                      // Use passed classes prop to lookup name
+                      const className = classes?.find(c => c.class_id === student.classId)?.class_name || student.classId;
                       
                       return (
                         <TableRow key={student.id} className="hover:bg-muted/30">
@@ -666,7 +733,7 @@ function SubjectScoreTable({
                           <TableCell className="font-medium">{student.name}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="rounded-full">
-                              {classGroup?.name || student.classId}
+                              {className}
                             </Badge>
                           </TableCell>
                           {subject.subTopics.map((subTopic) => {
@@ -722,24 +789,6 @@ function SubjectScoreTable({
                           </TableCell>
                           <TableCell className="text-center">
                             {getTrendIcon(subjectScore.percentage, subjectAverage)}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDelete(student, subject);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Delete Scores</TooltipContent>
-                            </Tooltip>
                           </TableCell>
                         </TableRow>
                       );

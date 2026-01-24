@@ -8,11 +8,13 @@ import { toast } from 'sonner';
 
 export const queryKeys = {
   examPrograms: ['exam_programs'] as const,
+  examProgramsByYear: (yearId: string) => ['exam_programs', 'year', yearId] as const,
   subjects: ['subjects'] as const,
   subjectsByProgram: (programId: string) => ['subjects', programId] as const,
   subTopics: ['sub_topics'] as const,
   subTopicsBySubject: (subjectId: string) => ['sub_topics', subjectId] as const,
   classes: ['classes'] as const,
+  classesByYear: (yearId: string) => ['classes', 'year', yearId] as const,
   classById: (id: string) => ['classes', id] as const,
   students: ['students'] as const,
   studentById: (id: string) => ['students', id] as const,
@@ -21,6 +23,16 @@ export const queryKeys = {
   classScores: (classId: string) => ['class_scores', classId] as const,
   classStats: (classId: string) => ['class_stats', classId] as const,
   topPerformers: (classId: string, limit: number) => ['top_performers', classId, limit] as const,
+  academicYears: ['academic_years'] as const,
+  currentAcademicYear: ['current_academic_year'] as const,
+  studentScoresByYear: (studentId: string, year: number) => ['student_scores', studentId, year] as const,
+  classStatsByYear: (classId: string, year: number) => ['class_stats', classId, year] as const,
+  studentYearComparison: (studentId: string) => ['student_year_comparison', studentId] as const,
+  programClasses: (programId: string) => ['program_classes', programId] as const,
+  classPrograms: (classId: string) => ['class_programs', classId] as const,
+  programStudents: (programId: string) => ['program_students', programId] as const,
+  yearPrograms: (yearId: string) => ['year_programs', yearId] as const,
+  yearClasses: (yearId: string) => ['year_classes', yearId] as const,
 };
 
 // ============ EXAM PROGRAMS ============
@@ -87,7 +99,7 @@ export function useSubTopics(subjectId?: string) {
 
 // Get complete subject with sub-topics
 export function useSubjectWithTopics(programId: string = 'pre-a-level') {
-  return useQuery({
+  return useQuery<any[]>({
     queryKey: ['subjects_with_topics', programId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -105,65 +117,37 @@ export function useSubjectWithTopics(programId: string = 'pre-a-level') {
   });
 }
 
-// Get subjects for a specific class
+// Get subjects for a specific class (via program assignments)
 export function useClassSubjects(classId: string) {
   return useQuery({
     queryKey: ['class_subjects', classId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('class_subjects')
-        .select(`
-          *,
-          subjects (
-            *,
-            sub_topics (*)
-          )
-        `)
-        .eq('class_id', classId)
-        .eq('is_active', true)
-        .order('display_order');
+        .rpc('get_class_subjects', { p_class_id: classId });
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!classId && classId !== 'all',
   });
 }
 
-// Get all available subjects (not yet assigned to a class)
+// Note: No longer needed - subjects come automatically via program assignment
+// Keeping for backward compatibility but can be removed
 export function useAvailableSubjects(classId: string, programId: string = 'pre-a-level') {
   return useQuery({
     queryKey: ['available_subjects', classId, programId],
     queryFn: async () => {
-      // Get all subjects for the program
-      const { data: allSubjects, error: subjectsError } = await supabase
-        .from('subjects')
-        .select('*')
-        .eq('program_id', programId);
-      
-      if (subjectsError) throw subjectsError;
-
-      // Get already assigned subjects for this class
-      const { data: classSubjects, error: classSubjectsError } = await supabase
-        .from('class_subjects')
-        .select('subject_id')
-        .eq('class_id', classId)
-        .eq('is_active', true);
-      
-      if (classSubjectsError) throw classSubjectsError;
-
-      // Filter out already assigned subjects
-      const assignedIds = new Set(classSubjects?.map(cs => cs.subject_id) || []);
-      return allSubjects?.filter(s => !assignedIds.has(s.id)) || [];
+      return []; // No longer assigning subjects manually
     },
-    enabled: !!classId && classId !== 'all',
+    enabled: false, // Disabled - subjects auto-assigned via programs
   });
 }
 
 // ============ CLASSES ============
 
 export function useClasses() {
-  return useQuery({
+  return useQuery<any[]>({
     queryKey: queryKeys.classes,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -181,7 +165,7 @@ export function useClasses() {
 // ============ STUDENTS ============
 
 export function useStudents(classId?: string) {
-  return useQuery({
+  return useQuery<any[]>({
     queryKey: classId ? queryKeys.studentsByClass(classId) : queryKeys.students,
     queryFn: async () => {
       let query = supabase
@@ -218,10 +202,68 @@ export function useStudent(studentId: string) {
   });
 }
 
+export function useCurrentStudent() {
+  const { user, isStudent } = useAuth();
+  return useQuery({
+    queryKey: ['current_student', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('students')
+        .select('*, classes(name)')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id && isStudent,
+  });
+}
+
+// ============ NOTIFICATIONS ============
+
+export function useNotifications(studentId: string) {
+  return useQuery<any[]>({
+    queryKey: ['notifications', studentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!studentId,
+    // Refetch often or use subscription
+    refetchInterval: 60000, 
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (notificationId: string) => {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId);
+        
+      if (error) throw error;
+    },
+    onSuccess: (_, notificationId) => {
+      // Optimistic update could be done here, but invalidating is safer
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
+
 // ============ STUDENT SCORES ============
 
 export function useStudentScores(studentId: string) {
-  return useQuery({
+  return useQuery<any[]>({
     queryKey: queryKeys.studentScores(studentId),
     queryFn: async () => {
       const { data, error } = await supabase
@@ -251,7 +293,7 @@ export function useStudentScores(studentId: string) {
 
 // Get all scores for a class with student info
 export function useClassScores(classId: string = 'all') {
-  return useQuery({
+  return useQuery<any[]>({
     queryKey: queryKeys.classScores(classId),
     queryFn: async () => {
       // First get students in the class
@@ -278,6 +320,146 @@ export function useClassScores(classId: string = 'all') {
       const { data, error } = await studentsQuery;
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+// ============ SCORE MUTATIONS ============
+
+// Update single score
+export function useUpdateStudentScore() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      studentId, 
+      subTopicId, 
+      score, 
+      academicYear 
+    }: { 
+      studentId: string; 
+      subTopicId: string; 
+      score: number;
+      academicYear: number;
+    }) => {
+      const { data, error } = await supabase
+        .from('student_scores')
+        .upsert({
+          student_id: studentId,
+          sub_topic_id: subTopicId,
+          score,
+          academic_year: academicYear,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'student_id, sub_topic_id' })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentScores(variables.studentId) });
+      queryClient.invalidateQueries({ queryKey: ['class_scores'] });
+      queryClient.invalidateQueries({ queryKey: ['student_scores_by_year'] });
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาดในการบันทึกคะแนน: ${error.message}`);
+    },
+  });
+}
+
+// Update multiple scores (batch)
+export function useUpdateStudentScores() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      studentId, 
+      scores,
+      academicYear 
+    }: { 
+      studentId: string; 
+      scores: { subTopicId: string; score: number }[];
+      academicYear: number;
+    }) => {
+      const records = scores.map(s => ({
+        student_id: studentId,
+        sub_topic_id: s.subTopicId,
+        score: s.score,
+        academic_year: academicYear,
+        updated_at: new Date().toISOString()
+      }));
+
+      const { data, error } = await supabase
+        .from('student_scores')
+        .upsert(records, { onConflict: 'student_id, sub_topic_id' })
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentScores(variables.studentId) });
+      queryClient.invalidateQueries({ queryKey: ['class_scores'] });
+      toast.success('บันทึกคะแนนเรียบร้อยแล้ว');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาดในการบันทึกคะแนน: ${error.message}`);
+    },
+  });
+}
+
+// Delete scores for a subject (by sub-topic IDs)
+export function useDeleteStudentSubjectScores() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      studentId, 
+      subTopicIds 
+    }: { 
+      studentId: string; 
+      subTopicIds: string[];
+    }) => {
+      const { error } = await supabase
+        .from('student_scores')
+        .delete()
+        .eq('student_id', studentId)
+        .in('sub_topic_id', subTopicIds);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentScores(variables.studentId) });
+      queryClient.invalidateQueries({ queryKey: ['class_scores'] }); 
+      toast.success('ลบคะแนนเรียบร้อยแล้ว');
+    },
+     onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาดในการลบคะแนน: ${error.message}`);
+    },
+  });
+}
+
+// Delete ALL scores for a student
+export function useDeleteStudentScores() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (studentId: string) => {
+      const { error } = await supabase
+        .from('student_scores')
+        .delete()
+        .eq('student_id', studentId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, studentId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentScores(studentId) });
+      queryClient.invalidateQueries({ queryKey: ['class_scores'] });
+      toast.success('ลบคะแนนทั้งหมดของนักเรียนเรียบร้อยแล้ว');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
     },
   });
 }
@@ -348,15 +530,16 @@ export function useCreateStudent() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (student: {
+    mutationFn: async (newStudent: {
       id: string;
       name: string;
       class_id: string;
       email?: string;
+      user_id?: string;
     }) => {
       const { data, error } = await supabase
         .from('students')
-        .insert(student)
+        .insert(newStudent)
         .select()
         .single();
       
@@ -795,4 +978,803 @@ export function useRemoveSubjectFromClass() {
   });
 }
 
+// ============ ACADEMIC YEAR MANAGEMENT ============
 
+export interface AcademicYear {
+  id: string;
+  year_number: number;
+  display_name: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  is_current: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Get all academic years
+export function useAcademicYears() {
+  return useQuery({
+    queryKey: queryKeys.academicYears,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('academic_years')
+        .select('*')
+        .order('year_number', { ascending: false });
+      
+      if (error) throw error;
+      return data as AcademicYear[];
+    },
+  });
+}
+
+// Get current academic year
+export function useCurrentAcademicYear() {
+  return useQuery({
+    queryKey: queryKeys.currentAcademicYear,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('academic_years')
+        .select('*')
+        .eq('is_current', true)
+        .single();
+      
+      if (error) {
+        // If no current year, return the most recent active year
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('academic_years')
+          .select('*')
+          .eq('is_active', true)
+          .order('year_number', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (fallbackError) throw fallbackError;
+        return fallbackData as AcademicYear;
+      }
+      
+      return data as AcademicYear;
+    },
+  });
+}
+
+// Get student scores by year
+export function useStudentScoresByYear(studentId: string, academicYear: number) {
+  return useQuery({
+    queryKey: queryKeys.studentScoresByYear(studentId, academicYear),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_student_scores_by_year', {
+          p_student_id: studentId,
+          p_academic_year: academicYear,
+        });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!studentId && !!academicYear,
+  });
+}
+
+// Get class statistics by year
+export function useClassStatisticsByYear(classId: string, academicYear: number) {
+  return useQuery({
+    queryKey: queryKeys.classStatsByYear(classId, academicYear),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_class_statistics_by_year', {
+          p_class_id: classId,
+          p_academic_year: academicYear,
+        });
+      
+      if (error) throw error;
+      return data?.[0] || {
+        total_students: 0,
+        avg_percentage: 0,
+        max_percentage: 0,
+        min_percentage: 0,
+        std_dev: 0,
+      };
+    },
+    enabled: !!classId && classId !== 'all' && !!academicYear,
+  });
+}
+
+// Get student year-over-year comparison
+export function useStudentYearComparison(studentId: string) {
+  return useQuery({
+    queryKey: queryKeys.studentYearComparison(studentId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_student_year_comparison', {
+          p_student_id: studentId,
+        });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!studentId,
+  });
+}
+
+// Create academic year
+export function useCreateAcademicYear() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (year: {
+      id: string;
+      year_number: number;
+      display_name: string;
+      start_date: string;
+      end_date: string;
+      is_active?: boolean;
+      is_current?: boolean;
+    }) => {
+      const { data, error } = await supabase
+        .from('academic_years')
+        .insert(year)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.academicYears });
+      toast.success('เพิ่มปีการศึกษาสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Set current academic year
+export function useSetCurrentAcademicYear() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (yearId: string) => {
+      // Use direct updates instead of RPC to avoid "UPDATE requires WHERE clause" error
+      // 1. Unset any currently active year
+      const { error: unsetError } = await supabase
+        .from('academic_years')
+        .update({ is_current: false })
+        .eq('is_current', true);
+      
+      if (unsetError) throw unsetError;
+
+      // 2. Set the new year as current
+      const { error: setError } = await supabase
+        .from('academic_years')
+        .update({ is_current: true })
+        .eq('id', yearId);
+      
+      if (setError) throw setError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.academicYears });
+      queryClient.invalidateQueries({ queryKey: queryKeys.currentAcademicYear });
+      toast.success('เปลี่ยนปีการศึกษาปัจจุบันสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Archive academic year
+export function useArchiveAcademicYear() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (yearId: string) => {
+      const { error } = await supabase.rpc('archive_academic_year', {
+        p_year_id: yearId,
+      });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.academicYears });
+      queryClient.invalidateQueries({ queryKey: queryKeys.classes });
+      toast.success('เก็บถาวรปีการศึกษาสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Update academic year
+export function useUpdateAcademicYear() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: {
+      id: string;
+      year_number?: number;
+      display_name?: string;
+      start_date?: string;
+      end_date?: string;
+      is_active?: boolean;
+    }) => {
+      const { data, error } = await supabase
+        .from('academic_years')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.academicYears });
+      toast.success('อัปเดตปีการศึกษาสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+
+
+// ============ HIERARCHICAL DATA STRUCTURE ============
+
+// Get programs for an academic year
+export function useYearPrograms(academicYearId: string) {
+  return useQuery({
+    queryKey: queryKeys.yearPrograms(academicYearId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_year_programs', { p_academic_year_id: academicYearId });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!academicYearId,
+  });
+}
+
+// Get classes for an academic year
+export function useYearClasses(academicYearId: string) {
+  return useQuery({
+    queryKey: queryKeys.yearClasses(academicYearId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_year_classes', { p_academic_year_id: academicYearId });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!academicYearId,
+  });
+}
+
+// Get classes assigned to a program
+export function useProgramClasses(programId: string) {
+  return useQuery({
+    queryKey: queryKeys.programClasses(programId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_program_classes', { p_program_id: programId });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!programId,
+  });
+}
+
+// Get programs assigned to a class
+export function useClassPrograms(classId: string) {
+  return useQuery({
+    queryKey: queryKeys.classPrograms(classId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_class_programs', { p_class_id: classId });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!classId && classId !== 'all',
+  });
+}
+
+// Get students in a program (via class assignments)
+export function useProgramStudents(programId: string) {
+  return useQuery({
+    queryKey: queryKeys.programStudents(programId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_program_students', { p_program_id: programId });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!programId,
+  });
+}
+
+// Get exam programs filtered by academic year
+export function useExamProgramsByYear(academicYearId?: string) {
+  return useQuery({
+    queryKey: academicYearId ? queryKeys.examProgramsByYear(academicYearId) : queryKeys.examPrograms,
+    queryFn: async () => {
+      let query = supabase
+        .from('exam_programs')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (academicYearId) {
+        query = query.eq('academic_year_id', academicYearId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+// Get classes filtered by academic year
+export function useClassesByYear(academicYearId?: string) {
+  return useQuery({
+    queryKey: academicYearId ? queryKeys.classesByYear(academicYearId) : queryKeys.classes,
+    queryFn: async () => {
+      let query = supabase
+        .from('classes')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (academicYearId) {
+        query = query.eq('academic_year_id', academicYearId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+// ============ PROGRAM-CLASS ASSIGNMENT MUTATIONS ============
+
+// Assign class to program
+export function useAssignClassToProgram() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  return useMutation({
+    mutationFn: async ({ programId, classId }: {
+      programId: string;
+      classId: string;
+    }) => {
+      const { data, error } = await supabase
+        .rpc('assign_class_to_program', {
+          p_program_id: programId,
+          p_class_id: classId,
+          p_assigned_by: user?.id,
+        });
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.programClasses(variables.programId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.classPrograms(variables.classId) });
+      queryClient.invalidateQueries({ queryKey: ['year_programs'] });
+      queryClient.invalidateQueries({ queryKey: ['year_classes'] });
+      toast.success('มอบหมายชั้นเรียนให้โครงการสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Remove class from program
+export function useRemoveClassFromProgram() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ programId, classId }: {
+      programId: string;
+      classId: string;
+    }) => {
+      const { error } = await supabase
+        .rpc('remove_class_from_program', {
+          p_program_id: programId,
+          p_class_id: classId,
+        });
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.programClasses(variables.programId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.classPrograms(variables.classId) });
+      queryClient.invalidateQueries({ queryKey: ['year_programs'] });
+      queryClient.invalidateQueries({ queryKey: ['year_classes'] });
+      toast.success('ลบชั้นเรียนออกจากโครงการสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// ============ EXAM PROGRAM MUTATIONS (Updated) ============
+
+// Create exam program (now requires academic year)
+export function useCreateExamProgram() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (program: {
+      id: string;
+      name: string;
+      description?: string;
+      academic_year_id: string;
+      is_active?: boolean;
+    }) => {
+      const { data, error } = await supabase
+        .from('exam_programs')
+        .insert(program)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.examPrograms });
+      queryClient.invalidateQueries({ queryKey: queryKeys.yearPrograms(variables.academic_year_id) });
+      toast.success('เพิ่มโครงการสอบสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Update exam program
+export function useUpdateExamProgram() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: {
+      id: string;
+      name?: string;
+      description?: string;
+      is_active?: boolean;
+    }) => {
+      const { data, error } = await supabase
+        .from('exam_programs')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.examPrograms });
+      queryClient.invalidateQueries({ queryKey: ['year_programs'] });
+      toast.success('อัปเดตโครงการสอบสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Delete exam program
+export function useDeleteExamProgram() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (programId: string) => {
+      const { error } = await supabase
+        .from('exam_programs')
+        .delete()
+        .eq('id', programId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.examPrograms });
+      queryClient.invalidateQueries({ queryKey: queryKeys.subjects });
+      queryClient.invalidateQueries({ queryKey: ['year_programs'] });
+      toast.success('ลบโครงการสอบสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// ============ CLASS MUTATIONS (Updated) ============
+
+// Create class (now requires academic year)
+export function useCreateClass() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (classData: {
+      id: string;
+      name: string;
+      academic_year_id: string;
+      is_active?: boolean;
+    }) => {
+      const { data, error } = await supabase
+        .from('classes')
+        .insert(classData)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.classes });
+      queryClient.invalidateQueries({ queryKey: queryKeys.yearClasses(variables.academic_year_id) });
+      toast.success('เพิ่มชั้นเรียนสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Update class
+export function useUpdateClass() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: {
+      id: string;
+      name?: string;
+      is_active?: boolean;
+    }) => {
+      const { data, error } = await supabase
+        .from('classes')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.classes });
+      queryClient.invalidateQueries({ queryKey: ['year_classes'] });
+      toast.success('อัปเดตชั้นเรียนสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Delete class
+export function useDeleteClass() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (classId: string) => {
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', classId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.classes });
+      queryClient.invalidateQueries({ queryKey: queryKeys.students });
+      queryClient.invalidateQueries({ queryKey: ['year_classes'] });
+      toast.success('ลบชั้นเรียนสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Create new user (manual admin provisioning)
+export function useCreateUser() {
+  return useMutation({
+    mutationFn: async (data: { email: string; password: string; fullName: string; role: string }) => {
+      const { data: userId, error } = await supabase.rpc('create_new_user', {
+        p_email: data.email,
+        p_password: data.password,
+        p_full_name: data.fullName,
+        p_role: data.role
+      });
+      
+      if (error) throw error;
+      return userId;
+    },
+    onSuccess: () => {
+      toast.success('สร้างผู้ใช้งานเรียบร้อยแล้ว');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Update existing user profile and role
+export function useUpdateUser() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: { userId: string; fullName: string; role: string }) => {
+      // 1. Update profile (full_name)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ full_name: data.fullName })
+        .eq('user_id', data.userId);
+        
+      if (profileError) throw profileError;
+      
+      // 2. Update role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .update({ role: data.role as any })
+        .eq('user_id', data.userId);
+        
+      if (roleError) throw roleError;
+      
+      return data.userId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teachers_list'] });
+      // Note: we'll manual refetch in the component if needed since we don't have a broad 'users' query key here
+      toast.success('อัปเดตข้อมูลผู้ใช้งานเรียบร้อยแล้ว');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// Delete user
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.rpc('delete_user', {
+        p_user_id: userId
+      });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teachers_list'] });
+      toast.success('ลบผู้ใช้งานเรียบร้อยแล้ว');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
+// ============ TEACHER ASSIGNMENTS ============
+
+export function useTeacherAssignments(teacherId?: string) {
+  return useQuery({
+    queryKey: ['teacher_assignments', teacherId],
+    queryFn: async () => {
+      let query = supabase
+        .from('teacher_assignments')
+        .select(`
+          unique_id:id,
+          teacher_id,
+          subject_id,
+          subjects (id, name, code)
+        `);
+      
+      if (teacherId) {
+        query = query.eq('teacher_id', teacherId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: true,
+  });
+}
+
+export function useAssignTeacher() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ teacherId, subjectId }: { teacherId: string; subjectId: string }) => {
+      const { error } = await supabase
+        .from('teacher_assignments')
+        .insert({ teacher_id: teacherId, subject_id: subjectId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teacher_assignments'] });
+      toast.success('Assigned teacher successfully');
+    },
+    onError: (error: any) => toast.error(error.message),
+  });
+}
+
+export function useRemoveAssignment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ teacherId, subjectId }: { teacherId: string; subjectId: string }) => {
+      const { error } = await supabase
+        .from('teacher_assignments')
+        .delete()
+        .eq('teacher_id', teacherId)
+        .eq('subject_id', subjectId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teacher_assignments'] });
+      toast.success('Removed assignment');
+    },
+    onError: (error: any) => toast.error(error.message),
+  });
+}
+
+export function useTeachersList() {
+  return useQuery({
+    queryKey: ['teachers_list'],
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'teacher');
+        
+      if (!roles?.length) return [];
+      
+      const userIds = roles.map(r => r.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('user_id', userIds);
+        
+      return profiles || [];
+    }
+  });
+}
+
+export function useUpsertStudentScores() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
+  return useMutation({
+    mutationFn: async ({ scores }: { scores: any[] }) => {
+      if (!user?.id) throw new Error("User not authenticated");
+      
+      const { error } = await supabase.rpc('upsert_student_scores', {
+        p_scores: scores,
+        p_updated_by: user.id
+      });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['class_scores'] });
+      queryClient.invalidateQueries({ queryKey: ['student_scores'] });
+      toast.success('Scores uploaded successfully');
+    },
+    onError: (error: any) => {
+      toast.error(`Upload failed: ${error.message}`);
+    },
+  });
+}

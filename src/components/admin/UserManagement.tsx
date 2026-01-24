@@ -7,8 +7,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Shield, GraduationCap, UserCog, Loader2 } from 'lucide-react';
+import { Users, Shield, GraduationCap, UserCog, Loader2, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useCreateUser, useUpdateUser, useDeleteUser } from "@/hooks/useSupabaseData";
+import { Edit2, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type AppRole = 'admin' | 'teacher' | 'student';
 
@@ -44,6 +67,29 @@ const UserManagement = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  
+  // Create User State
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const createUserMutation = useCreateUser();
+  const [newUser, setNewUser] = useState({
+    email: '',
+    password: '',
+    fullName: '',
+    role: 'student' as AppRole
+  });
+
+  // Edit User State
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
+  const updateUserMutation = useUpdateUser();
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    role: 'student' as AppRole
+  });
+
+  // Delete User State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const deleteUserMutation = useDeleteUser();
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -124,6 +170,76 @@ const UserManagement = () => {
     setUpdating(null);
   };
 
+  const handleCreateUser = async () => {
+    try {
+      if (!newUser.email || !newUser.password || !newUser.fullName) {
+        toast({
+          title: 'ข้อมูลไม่ครบถ้วน',
+          description: 'กรุณากรอกข้อมูลให้ครบทุกช่อง',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await createUserMutation.mutateAsync({
+        email: newUser.email,
+        password: newUser.password,
+        fullName: newUser.fullName,
+        role: newUser.role
+      });
+      
+      setCreateDialogOpen(false);
+      setNewUser({
+        email: '',
+        password: '',
+        fullName: '',
+        role: 'student'
+      });
+      fetchUsers(); // Reload list
+      
+    } catch (error) {
+      // Error handled by mutation hook options mostly, but we catch here to prevent crash
+      console.error(error);
+    }
+  };
+
+  const handleOpenEdit = (user: UserWithRole) => {
+    setSelectedUser(user);
+    setEditForm({
+      fullName: user.full_name || '',
+      role: user.role
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+    
+    try {
+      await updateUserMutation.mutateAsync({
+        userId: selectedUser.user_id,
+        fullName: editForm.fullName,
+        role: editForm.role
+      });
+      setEditDialogOpen(false);
+      fetchUsers();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteId) return;
+    
+    try {
+      await deleteUserMutation.mutateAsync(deleteId);
+      setDeleteId(null);
+      fetchUsers();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -140,13 +256,87 @@ const UserManagement = () => {
     >
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            <CardTitle>จัดการผู้ใช้งาน</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle>จัดการผู้ใช้งาน</CardTitle>
+                <CardDescription>
+                  ดูและจัดการบทบาทของผู้ใช้ในระบบ (เฉพาะผู้ดูแลระบบ)
+                </CardDescription>
+              </div>
+            </div>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  เพิ่มผู้ใช้งาน
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>เพิ่มผู้ใช้งานใหม่</DialogTitle>
+                  <DialogDescription>
+                    กรอกข้อมูลเพื่อสร้างบัญชีผู้ใช้
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullname">ชื่อ-นามสกุล</Label>
+                    <Input 
+                      id="fullname" 
+                      value={newUser.fullName}
+                      onChange={(e) => setNewUser({...newUser, fullName: e.target.value})}
+                      placeholder="สมชาย ใจดี"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">อีเมล</Label>
+                    <Input 
+                      id="email" 
+                      type="email"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                      placeholder="user@example.com"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">รหัสผ่าน</Label>
+                    <Input 
+                      id="password" 
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">บทบาท</Label>
+                    <Select 
+                      value={newUser.role} 
+                      onValueChange={(val: AppRole) => setNewUser({...newUser, role: val})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกบทบาท" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="student">นักเรียน</SelectItem>
+                        <SelectItem value="teacher">ครู</SelectItem>
+                        <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>ยกเลิก</Button>
+                  <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
+                    {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    บันทึก
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
-          <CardDescription>
-            ดูและจัดการบทบาทของผู้ใช้ในระบบ (เฉพาะผู้ดูแลระบบ)
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -162,12 +352,13 @@ const UserManagement = () => {
                     <TableHead>อีเมล</TableHead>
                     <TableHead>บทบาทปัจจุบัน</TableHead>
                     <TableHead>เปลี่ยนบทบาท</TableHead>
+                    <TableHead className="text-right">จัดการ</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center text-muted-foreground">
                         ไม่พบผู้ใช้ในระบบ
                       </TableCell>
                     </TableRow>
@@ -219,6 +410,27 @@ const UserManagement = () => {
                             </SelectContent>
                           </Select>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-primary"
+                              onClick={() => handleOpenEdit(user)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => setDeleteId(user.user_id)}
+                              disabled={user.user_id === useAuth().user?.id} // Don't allow self-delete
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -228,6 +440,72 @@ const UserManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>แก้ไขข้อมูลผู้ใช้งาน</DialogTitle>
+            <DialogDescription>
+              แก้ไขข้อมูลพื้นฐานของ {selectedUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-fullname">ชื่อ-นามสกุล</Label>
+              <Input 
+                id="edit-fullname" 
+                value={editForm.fullName}
+                onChange={(e) => setEditForm({...editForm, fullName: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">บทบาท</Label>
+              <Select 
+                value={editForm.role} 
+                onValueChange={(val: AppRole) => setEditForm({...editForm, role: val})}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกบทบาท" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="student">นักเรียน</SelectItem>
+                  <SelectItem value="teacher">ครู</SelectItem>
+                  <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>ยกเลิก</Button>
+            <Button onClick={handleUpdateUser} disabled={updateUserMutation.isPending}>
+              {updateUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              บันทึกการแก้ไข
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ยืนยันการลบผู้ใช้งาน?</AlertDialogTitle>
+            <AlertDialogDescription>
+              การกระทำนี้ไม่สามารถย้อนกลับได้ ข้อมูลประวัติและคะแนนที่เกี่ยวข้องอาจได้รับผลกระทบ
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              ลบผู้ใช้งาน
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };

@@ -1,16 +1,29 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Student, preALevelProgram, getSubjectScore } from "@/lib/mockData";
+
+interface SubTopic {
+  id: string;
+  name: string;
+  maxScore: number; // mapped from max_score
+}
+
+interface Subject {
+  id: string;
+  name: string;
+  code: string;
+  subTopics: SubTopic[];
+}
 
 interface ScoreBreakdownProps {
-  student: Student;
+  subjects: Subject[];
+  studentScores: any[];
   className?: string;
 }
 
-export function ScoreBreakdown({ student, className }: ScoreBreakdownProps) {
+export function ScoreBreakdown({ subjects, studentScores, className }: ScoreBreakdownProps) {
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
 
   const toggleSubject = (subjectId: string) => {
@@ -50,10 +63,19 @@ export function ScoreBreakdown({ student, className }: ScoreBreakdownProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {preALevelProgram.subjects.map((subject) => {
-            const subjectScore = getSubjectScore(student, subject.id);
+          {subjects.map((subject) => {
+            // Calculate Subject Score dynamically
+            let earned = 0;
+            let max = 0;
+            subject.subTopics.forEach(st => {
+               const scoreVal = studentScores.find(s => s.sub_topic_id === st.id)?.score || 0;
+               earned += scoreVal;
+               max += st.maxScore;
+            });
+            const percentage = max > 0 ? (earned / max) * 100 : 0;
+            
             const isExpanded = expandedSubjects.has(subject.id);
-            const grade = getGradeBadge(subjectScore.percentage);
+            const grade = getGradeBadge(percentage);
 
             return (
               <div
@@ -80,11 +102,11 @@ export function ScoreBreakdown({ student, className }: ScoreBreakdownProps) {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <p className={cn("font-bold", getGradeColor(subjectScore.percentage))}>
-                        {subjectScore.score}/{subjectScore.maxScore}
+                      <p className={cn("font-bold", getGradeColor(percentage))}>
+                        {earned}/{max}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {subjectScore.percentage.toFixed(1)}%
+                        {percentage.toFixed(1)}%
                       </p>
                     </div>
                     <span
@@ -110,11 +132,10 @@ export function ScoreBreakdown({ student, className }: ScoreBreakdownProps) {
                       <div className="border-t bg-muted/30 px-4 py-3">
                         <div className="space-y-3">
                           {subject.subTopics.map((subTopic) => {
-                            const scoreEntry = student.scores.find(
-                              (s) => s.subTopicId === subTopic.id
-                            );
-                            const score = scoreEntry?.score || 0;
-                            const percentage = (score / subTopic.maxScore) * 100;
+                            const score = studentScores.find(
+                              (s) => s.sub_topic_id === subTopic.id
+                            )?.score || 0;
+                            const stPercentage = subTopic.maxScore > 0 ? (score / subTopic.maxScore) * 100 : 0;
 
                             return (
                               <div
@@ -131,13 +152,13 @@ export function ScoreBreakdown({ student, className }: ScoreBreakdownProps) {
                                   <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                                     <motion.div
                                       initial={{ width: 0 }}
-                                      animate={{ width: `${percentage}%` }}
+                                      animate={{ width: `${stPercentage}%` }}
                                       transition={{ duration: 0.4 }}
                                       className={cn(
                                         "h-full rounded-full",
-                                        percentage >= 80
+                                        stPercentage >= 80
                                           ? "bg-success"
-                                          : percentage >= 60
+                                          : stPercentage >= 60
                                           ? "bg-warning"
                                           : "bg-destructive"
                                       )}

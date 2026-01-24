@@ -12,6 +12,7 @@ import {
 interface SubTopicGapChartProps {
   students: Student[];
   selectedSubject: string;
+  subjects?: any[];
 }
 
 interface SubTopicGap {
@@ -24,11 +25,11 @@ interface SubTopicGap {
   priority: "urgent" | "moderate" | "low";
 }
 
-export function SubTopicGapChart({ students, selectedSubject }: SubTopicGapChartProps) {
+export function SubTopicGapChart({ students, selectedSubject, subjects = [] }: SubTopicGapChartProps) {
   const gapData = useMemo(() => {
     const subjectsToShow = selectedSubject === "all"
-      ? preALevelProgram.subjects
-      : preALevelProgram.subjects.filter(s => s.id === selectedSubject);
+      ? subjects
+      : subjects.filter(s => s.id === selectedSubject);
 
     const gaps: SubTopicGap[] = subjectsToShow.flatMap(subject =>
       subject.subTopics.map(subTopic => {

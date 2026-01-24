@@ -2,17 +2,14 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3 } from "lucide-react";
-import {
-  mockStudents,
-  preALevelProgram,
-  classGroups,
-  getSubjectScore,
-  getTotalScore,
-} from "@/lib/mockData";
+import { calculateSubjectScore, getStudentTotalScore } from "@/lib/score-utils";
 
 interface BoxPlotChartProps {
   selectedSubject: string;
   selectedClass: string;
+  students: any[];
+  classes: any[];
+  subjects: any[];
 }
 
 interface BoxPlotData {
@@ -51,25 +48,31 @@ function calculateQuartiles(values: number[]): { q1: number; median: number; q3:
   return { q1, median, q3 };
 }
 
-export function BoxPlotChart({ selectedSubject, selectedClass }: BoxPlotChartProps) {
+export function BoxPlotChart({ selectedSubject, selectedClass, students, classes, subjects }: BoxPlotChartProps) {
   const boxPlotData = useMemo(() => {
-    const classesToShow = selectedClass === "all" ? classGroups : classGroups.filter(c => c.id === selectedClass);
+    // Determine which classes to show
+    const classesToShow = selectedClass === "all" 
+      ? classes 
+      : classes.filter(c => c.class_id === selectedClass || c.id === selectedClass); // Handle both formats
 
-    return classesToShow.map((classGroup): BoxPlotData => {
-      const classStudents = mockStudents.filter((s) => s.classId === classGroup.id);
+    return classesToShow.map((classGroup: any): BoxPlotData => {
+      // Filter students for this class
+      const classId = classGroup.class_id || classGroup.id;
+      const classStudents = students.filter((s) => s.classId === classId);
 
       const scores = classStudents.map((student) => {
         if (selectedSubject === "all") {
-          return getTotalScore(student).percentage;
+          return getStudentTotalScore(student, subjects).percentage;
         } else {
-          return getSubjectScore(student, selectedSubject).percentage;
+          const subject = subjects.find(s => s.id === selectedSubject);
+          return subject ? calculateSubjectScore(student, subject).percentage : 0;
         }
       });
 
       if (scores.length === 0) {
         return {
-          className: classGroup.name,
-          classId: classGroup.id,
+          className: classGroup.class_name || classGroup.name,
+          classId: classId,
           min: 0,
           q1: 0,
           median: 0,
@@ -90,8 +93,8 @@ export function BoxPlotChart({ selectedSubject, selectedClass }: BoxPlotChartPro
       const nonOutliers = sorted.filter((v) => v >= lowerBound && v <= upperBound);
 
       return {
-        className: classGroup.name,
-        classId: classGroup.id,
+        className: classGroup.class_name || classGroup.name,
+        classId: classId,
         min: nonOutliers.length > 0 ? nonOutliers[0] : sorted[0],
         q1,
         median,
@@ -101,11 +104,11 @@ export function BoxPlotChart({ selectedSubject, selectedClass }: BoxPlotChartPro
         outliers,
       };
     });
-  }, [selectedSubject, selectedClass]);
+  }, [selectedSubject, selectedClass, students, classes, subjects]);
 
   const subjectName = selectedSubject === "all"
     ? "Overall"
-    : preALevelProgram.subjects.find(s => s.id === selectedSubject)?.name || "Unknown";
+    : subjects.find(s => s.id === selectedSubject)?.name || "Unknown";
 
   const maxValue = 100;
   const chartHeight = 200;

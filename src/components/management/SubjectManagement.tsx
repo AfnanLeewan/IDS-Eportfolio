@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, ChevronRight, BookOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,49 +27,66 @@ import {
   useDeleteSubject,
   useCreateSubTopic,
   useDeleteSubTopic,
-  useClasses,
-  useClassSubjects,
-  useAvailableSubjects,
-  useAssignSubjectToClass,
-  useRemoveSubjectFromClass,
+  useCurrentAcademicYear,
+  useYearPrograms,
+  useTeachersList,
+  useAssignTeacher,
+  useRemoveAssignment,
+  useTeacherAssignments
 } from "@/hooks/useSupabaseData";
 import { Badge } from "@/components/ui/badge";
+import { UserCog, X } from "lucide-react";
 
 export function SubjectManagement() {
-  // Database hooks
-  const { data: allSubjects = [], isLoading: allSubjectsLoading } = useSubjectWithTopics('pre-a-level');
-  const { data: classes = [] } = useClasses();
-  const createSubject = useCreateSubject();
-  const deleteSubject = useDeleteSubject();
-  const createSubTopic = useCreateSubTopic();
-  const deleteSubTopic = useDeleteSubTopic();
-  const assignSubject = useAssignSubjectToClass();
-  const removeSubject = useRemoveSubjectFromClass();
-
+  const { data: currentYear } = useCurrentAcademicYear();
+  const { data: programs = [], isLoading: programsLoading } = useYearPrograms(currentYear?.id || '');
+  
   // Local UI state
-  const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [selectedProgramId, setSelectedProgramId] = useState<string>("");
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [isCreateSubjectOpen, setIsCreateSubjectOpen] = useState(false);
   const [isCreateSubTopicOpen, setIsCreateSubTopicOpen] = useState(false);
-  const [isAssignSubjectOpen, setIsAssignSubjectOpen] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
   const [subjectForm, setSubjectForm] = useState({ name: "", code: "" });
   const [subTopicForm, setSubTopicForm] = useState({ name: "", maxScore: 20 });
   const { toast } = useToast();
 
-  // Get class-specific subjects when a class is selected
-  const { data: classSubjects = [] } = useClassSubjects(selectedClass);
-  const { data: availableSubjects = [] } = useAvailableSubjects(selectedClass);
+  // Auto-select first program when programs load
+  useEffect(() => {
+    if (programs.length > 0 && !selectedProgramId) {
+      setSelectedProgramId(programs[0].program_id);
+    }
+  }, [programs, selectedProgramId]);
 
-  // Determine which subjects to display
-  const displaySubjects = selectedClass === "all" 
-    ? allSubjects 
-    : classSubjects.map(cs => ({
-        ...cs.subjects,
-        sub_topics: cs.subjects?.sub_topics || []
-      }));
+  // Database hooks
+  const { data: allSubjects = [], isLoading: allSubjectsLoading } = useSubjectWithTopics(selectedProgramId || 'none');
+  const createSubject = useCreateSubject();
+  const deleteSubject = useDeleteSubject();
+  const createSubTopic = useCreateSubTopic();
+  const deleteSubTopic = useDeleteSubTopic();
+  
+  // Teacher Assignment Hooks
+  const { data: teachers = [] } = useTeachersList();
+  const { data: assignments = [] } = useTeacherAssignments();
+  const assignTeacher = useAssignTeacher();
+  const removeAssignment = useRemoveAssignment();
+  
+  const [isManageTeachersOpen, setIsManageTeachersOpen] = useState(false);
+  const [selectedTeacherId, setSelectedTeacherId] = useState("");
+
+  // All subjects from the selected program
+  const displaySubjects = allSubjects;
 
   const handleCreateSubject = () => {
+    if (!selectedProgramId) {
+      toast({
+        title: "Error",
+        description: "Please select a program first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!subjectForm.name.trim() || !subjectForm.code.trim()) {
       toast({
         title: "Error",
@@ -83,7 +100,7 @@ export function SubjectManagement() {
 
     createSubject.mutate({
       id: subjectId,
-      program_id: 'pre-a-level',
+      program_id: selectedProgramId,
       name: subjectForm.name,
       code: subjectForm.code.toUpperCase(),
       display_order: allSubjects.length,
@@ -123,42 +140,17 @@ export function SubjectManagement() {
   };
 
   const handleDeleteSubject = (subjectId: string, subjectName: string) => {
-    if (selectedClass !== "all") {
-      // Remove from class only
-      if (!confirm(`Remove "${subjectName}" from this class?`)) return;
-      
-      removeSubject.mutate({ classId: selectedClass, subjectId });
-    } else {
-      // Delete subject globally
-      if (!confirm(`Delete "${subjectName}" permanently? This will remove it from ALL classes and delete all sub-topics and scores.`)) return;
-      
-      deleteSubject.mutate(subjectId);
-    }
+    if (!confirm(`ลบวิชา "${subjectName}" หรือไม่? การลบจะลบหัวข้อและคะแนนทั้งหมด`)) return;
+    
+    deleteSubject.mutate(subjectId);
   };
 
   const handleDeleteSubTopic = (subTopicId: string, subTopicName: string) => {
-    if (!confirm(`Are you sure you want to delete "${subTopicName}"? This will also delete all student scores for this sub-topic.`)) {
+    if (!confirm(`คุณแน่ใจหรือไม่ที่จะลบหัวข้อ "${subTopicName}"? การลบจะลบคะแนนทั้งหมดของหัวข้อนี้`)) {
       return;
     }
 
     deleteSubTopic.mutate(subTopicId);
-  };
-
-  const handleAssignSubject = (subjectId: string) => {
-    if (!selectedClass || selectedClass === "all") {
-      toast({
-        title: "Error",
-        description: "Please select a class first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    assignSubject.mutate({ classId: selectedClass, subjectId }, {
-      onSuccess: () => {
-        setIsAssignSubjectOpen(false);
-      }
-    });
   };
 
   const openAddSubTopic = (subjectId: string) => {
@@ -166,7 +158,7 @@ export function SubjectManagement() {
     setIsCreateSubTopicOpen(true);
   };
 
-  if (allSubjectsLoading) {
+  if (programsLoading || allSubjectsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -174,79 +166,92 @@ export function SubjectManagement() {
     );
   }
 
+  if (!currentYear) {
+    return (
+      <Card className="p-6">
+        <p className="text-center text-muted-foreground">
+          ไม่พบปีการศึกษาปัจจุบัน กรุณาตั้งค่าปีการศึกษาก่อน
+        </p>
+      </Card>
+    );
+  }
+
+  if (programs.length === 0) {
+    return (
+      <Card className="p-6">
+        <p className="text-center text-muted-foreground">
+          ยังไม่มีโครงการในปีการศึกษานี้ กรุณาเพิ่มโครงการก่อน
+        </p>
+      </Card>
+    );
+  }
+
+  const selectedProgram = programs.find(p => p.program_id === selectedProgramId);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4">
         <div>
-          <h3 className="text-lg font-semibold">Subjects & Sub-Topics</h3>
+          <h3 className="text-2xl font-bold">วิชาและหัวข้อ</h3>
+          <p className="text-muted-foreground">
+            จัดการวิชาและหัวข้อของโครงการต่างๆ
+          </p>
+        </div>
+
+        {/* Program Selector */}
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            <Label className="text-sm font-medium whitespace-nowrap">เลือกโครงการ:</Label>
+            <Select value={selectedProgramId} onValueChange={setSelectedProgramId}>
+              <SelectTrigger className="w-[300px]">
+                <SelectValue placeholder="เลือกโครงการ" />
+              </SelectTrigger>
+              <SelectContent>
+                {programs.map((program: any) => (
+                  <SelectItem key={program.program_id} value={program.program_id}>
+                    {program.program_name}
+                    {program.subject_count > 0 && ` (${program.subject_count} วิชา)`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedProgram && (
+              <Badge variant="outline" className="ml-auto">
+                ปีการศึกษา {currentYear.display_name}
+              </Badge>
+            )}
+          </div>
+          {selectedProgram?.program_description && (
+            <p className="text-sm text-muted-foreground mt-2">
+              {selectedProgram.program_description}
+            </p>
+          )}
+        </Card>
+      </div>
+
+
+      <div className="flex items-center justify-between">
+        <div>
           <p className="text-sm text-muted-foreground">
-            {selectedClass === "all" 
-              ? "Manage all subjects or select a class to manage class-specific subjects"
-              : "Manage subjects for the selected class"}
+            วิชาทั้งหมดในโครงการ {selectedProgram?.program_name || ''}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            <strong>หมายเหตุ:</strong> เมื่อมอบหมายชั้นเรียนให้กับโครงการ ชั้นเรียนจะสามารถเข้าถึงวิชาทั้งหมดในโครงการโดยอัตโนมัติ
           </p>
         </div>
         <div className="flex gap-2">
-          {selectedClass !== "all" && (
-            <Dialog open={isAssignSubjectOpen} onOpenChange={setIsAssignSubjectOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Subject to Class
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Add Subject to Class</DialogTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Select from available subjects to add to this class
-                  </p>
-                </DialogHeader>
-                <div className="py-4">
-                  {availableSubjects.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      All subjects are already assigned to this class.
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {availableSubjects.map((subject) => (
-                        <Card key={subject.id} className="p-3 hover:bg-muted/50 cursor-pointer transition-colors">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">{subject.name}</p>
-                              <p className="text-xs text-muted-foreground">Code: {subject.code}</p>
-                            </div>
-                            <Button
-                              size="sm"
-                              onClick={() => handleAssignSubject(subject.id)}
-                              disabled={assignSubject.isPending}
-                            >
-                              {assignSubject.isPending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                "Add"
-                              )}
-                            </Button>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
           <Dialog open={isCreateSubjectOpen} onOpenChange={setIsCreateSubjectOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2 gradient-primary text-primary-foreground shadow-glow">
+              <Button className="gap-2">
                 <Plus className="h-4 w-4" />
-                Create New Subject
+                เพิ่มวิชาใหม่
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Create New Subject</DialogTitle>
+                <DialogTitle>เพิ่มวิชาใหม่</DialogTitle>
                 <p className="text-sm text-muted-foreground">
-                  This subject will be available to assign to any class
+                  เพิ่มวิชาใหม่ในโครงการ {selectedProgram?.program_name}
                 </p>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -298,32 +303,6 @@ export function SubjectManagement() {
         </div>
       </div>
 
-      {/* Class Filter */}
-      <Card className="shadow-card border-0 rounded-2xl">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Label className="text-sm font-medium">Filter by Class:</Label>
-            <Select value={selectedClass} onValueChange={setSelectedClass}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select class" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Subjects</SelectItem>
-                {classes.map((classGroup) => (
-                  <SelectItem key={classGroup.id} value={classGroup.id}>
-                    {classGroup.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedClass !== "all" && (
-              <Badge variant="secondary">
-                {displaySubjects.length} subjects assigned
-              </Badge>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Subjects List */}
       <div className="space-y-4">
@@ -331,9 +310,7 @@ export function SubjectManagement() {
           <Card className="shadow-card border-0 rounded-2xl">
             <CardContent className="py-8">
               <p className="text-center text-muted-foreground">
-                {selectedClass === "all" 
-                  ? "No subjects yet. Click 'Create New Subject' to add one."
-                  : "No subjects assigned to this class yet. Click 'Add Subject to Class' to assign subjects."}
+                ยังไม่มีวิชา คลิก 'เพิ่มวิชาใหม่' เพื่อเพิ่มวิชา
               </p>
             </CardContent>
           </Card>
@@ -383,12 +360,24 @@ export function SubjectManagement() {
                       </Button>
                       <Button
                         variant="ghost"
+                        size="sm"
+                        className="gap-1 text-primary"
+                        onClick={() => {
+                          setSelectedSubjectId(subject.id);
+                          setIsManageTeachersOpen(true);
+                        }}
+                      >
+                        <UserCog className="h-4 w-4" />
+                        Teachers
+                      </Button>
+                      <Button
+                        variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive"
                         onClick={() => handleDeleteSubject(subject.id, subject.name)}
-                        disabled={deleteSubject.isPending || removeSubject.isPending}
+                        disabled={deleteSubject.isPending}
                       >
-                        {(deleteSubject.isPending || removeSubject.isPending) ? (
+                        {deleteSubject.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Trash2 className="h-4 w-4" />
@@ -503,6 +492,88 @@ export function SubjectManagement() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Teachers Dialog */}
+      <Dialog open={isManageTeachersOpen} onOpenChange={setIsManageTeachersOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manage Teachers</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Assign teachers to {displaySubjects.find(s => s.id === selectedSubjectId)?.name}
+            </p>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="flex gap-2">
+              <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select teacher..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers
+                    .filter(t => !assignments.some((a: any) => a.subject_id === selectedSubjectId && a.teacher_id === t.user_id))
+                    .map((teacher: any) => (
+                    <SelectItem key={teacher.user_id} value={teacher.user_id}>
+                      {teacher.full_name || teacher.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                onClick={() => {
+                  if (selectedSubjectId && selectedTeacherId) {
+                    assignTeacher.mutate({ teacherId: selectedTeacherId, subjectId: selectedSubjectId });
+                    setSelectedTeacherId("");
+                  }
+                }}
+                disabled={!selectedTeacherId || assignTeacher.isPending}
+              >
+                Assign
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Assigned Teachers</Label>
+              <div className="space-y-2">
+                {assignments
+                  .filter((a: any) => a.subject_id === selectedSubjectId)
+                  .map((assignment: any) => {
+                    const teacher = teachers.find((t: any) => t.user_id === assignment.teacher_id);
+                    return (
+                      <div key={assignment.unique_id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <UserCog className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{teacher?.full_name || 'Unknown'}</p>
+                            <p className="text-xs text-muted-foreground">{teacher?.email}</p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => removeAssignment.mutate({ 
+                            teacherId: assignment.teacher_id, 
+                            subjectId: assignment.subject_id 
+                          })}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                {assignments.filter((a: any) => a.subject_id === selectedSubjectId).length === 0 && (
+                  <p className="text-sm text-center text-muted-foreground py-4">
+                    No teachers assigned yet.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

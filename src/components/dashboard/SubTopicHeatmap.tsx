@@ -14,6 +14,7 @@ interface SubTopicHeatmapProps {
   students: Student[];
   selectedSubject: string;
   onStudentClick: (student: Student) => void;
+  subjects?: any[];
 }
 
 function getHeatmapColor(percentage: number): string {
@@ -32,14 +33,14 @@ function getHeatmapTextColor(percentage: number): string {
   return "text-destructive-foreground";
 }
 
-export function SubTopicHeatmap({ students, selectedSubject, onStudentClick }: SubTopicHeatmapProps) {
+export function SubTopicHeatmap({ students, selectedSubject, onStudentClick, subjects = [] }: SubTopicHeatmapProps) {
   const heatmapData = useMemo(() => {
     const subjectsToShow = selectedSubject === "all"
-      ? preALevelProgram.subjects
-      : preALevelProgram.subjects.filter(s => s.id === selectedSubject);
+      ? subjects
+      : subjects.filter(s => s.id === selectedSubject);
 
-    const subTopics = subjectsToShow.flatMap(subject =>
-      subject.subTopics.map(st => ({
+    const subTopics = subjectsToShow.flatMap((subject: any) =>
+      (subject.subTopics || []).map((st: any) => ({
         ...st,
         subjectCode: subject.code,
         subjectName: subject.name,

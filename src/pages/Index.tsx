@@ -11,13 +11,15 @@ import { mockStudents } from "@/lib/mockData";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
+import { useCurrentStudent } from "@/hooks/useSupabaseData";
+
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading, isAdmin, isTeacher, isStudent, role } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>("dashboard");
   
-  // For demo, use the first student
-  const demoStudent = mockStudents[0];
+  // Fetch current student data if applicable
+  const { data: currentStudent, isLoading: isStudentLoading } = useCurrentStudent();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -25,7 +27,7 @@ const Index = () => {
     }
   }, [user, loading, navigate]);
 
-  if (loading) {
+  if (loading || (isStudent && isStudentLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -42,7 +44,7 @@ const Index = () => {
 
   const renderContent = () => {
     // Student can only see their dashboard
-    if (isStudent) {
+    if (isStudent && currentStudent) {
       return (
         <motion.div
           key="student"
@@ -51,7 +53,7 @@ const Index = () => {
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
         >
-          <StudentDashboard student={demoStudent} />
+          <StudentDashboard student={currentStudent} />
         </motion.div>
       );
     }

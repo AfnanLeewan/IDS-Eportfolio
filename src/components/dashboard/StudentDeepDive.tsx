@@ -21,13 +21,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import {
-  preALevelProgram,
-  classGroups,
-  getSubjectScore,
-  getTotalScore,
   Student,
 } from "@/lib/mockData";
 import {
@@ -38,51 +33,54 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SubTopicScoreChart } from "./SubTopicScoreChart";
+import { calculateSubjectScore, getStudentTotalScore } from "@/lib/score-utils";
 
 interface StudentDeepDiveProps {
   student: Student;
   classStudents: Student[];
+  subjects?: any[];
+  classes?: any[];
 }
 
-export function StudentDeepDive({ student, classStudents }: StudentDeepDiveProps) {
-  const [selectedSubject, setSelectedSubject] = useState(preALevelProgram.subjects[0].id);
+export function StudentDeepDive({ student, classStudents, subjects = [], classes = [] }: StudentDeepDiveProps) {
+  const [selectedSubjectId, setSelectedSubjectId] = useState(subjects[0]?.id || "");
   
   // Calculate student's total score
-  const studentTotal = getTotalScore(student);
+  const studentTotal = getStudentTotalScore(student, subjects);
   
-  const selectedSubjectData = preALevelProgram.subjects.find(s => s.id === selectedSubject);
+  const selectedSubjectData = subjects.find(s => s.id === selectedSubjectId);
 
   // Calculate class average
   const classAverage = useMemo(() => {
-    return classStudents.reduce((acc, s) => acc + getTotalScore(s).percentage, 0) / classStudents.length;
-  }, [classStudents]);
+    return classStudents.reduce((acc, s) => acc + getStudentTotalScore(s, subjects).percentage, 0) / classStudents.length;
+  }, [classStudents, subjects]);
 
   // Calculate top 10 average
   const top10Average = useMemo(() => {
     const sorted = [...classStudents]
-      .map(s => ({ ...s, total: getTotalScore(s) }))
+      .map(s => ({ ...s, total: getStudentTotalScore(s, subjects) }))
       .sort((a, b) => b.total.percentage - a.total.percentage);
     const top10 = sorted.slice(0, Math.ceil(sorted.length * 0.1));
     return top10.reduce((acc, s) => acc + s.total.percentage, 0) / top10.length;
-  }, [classStudents]);
+  }, [classStudents, subjects]);
 
   // Get student rank
   const studentRank = useMemo(() => {
     const sorted = [...classStudents]
-      .map(s => ({ ...s, total: getTotalScore(s) }))
+      .map(s => ({ ...s, total: getStudentTotalScore(s, subjects) }))
       .sort((a, b) => b.total.percentage - a.total.percentage);
     return sorted.findIndex(s => s.id === student.id) + 1;
-  }, [classStudents, student]);
+  }, [classStudents, student, subjects]);
 
   // Subject comparison data for bar chart
   const subjectComparisonData = useMemo(() => {
-    return preALevelProgram.subjects.map(subject => {
-      const studentScore = getSubjectScore(student, subject.id).percentage;
+    return subjects.map(subject => {
+      const studentScore = calculateSubjectScore(student, subject).percentage;
       const classAvg = classStudents.reduce((acc, s) =>
-        acc + getSubjectScore(s, subject.id).percentage, 0) / classStudents.length;
+        acc + calculateSubjectScore(s, subject).percentage, 0) / classStudents.length;
 
       const sorted = [...classStudents]
-        .map(s => ({ id: s.id, score: getSubjectScore(s, subject.id).percentage }))
+        .map(s => ({ id: s.id, score: calculateSubjectScore(s, subject).percentage }))
         .sort((a, b) => b.score - a.score);
       const top10 = sorted.slice(0, Math.ceil(sorted.length * 0.1));
       const top10Avg = top10.reduce((acc, s) => acc + s.score, 0) / top10.length;
@@ -95,7 +93,7 @@ export function StudentDeepDive({ student, classStudents }: StudentDeepDiveProps
         top10Average: top10Avg,
       };
     });
-  }, [student, classStudents]);
+  }, [student, classStudents, subjects]);
 
   // Weakness table - sub-topics below 50%
   const weaknesses = useMemo(() => {
@@ -110,8 +108,8 @@ export function StudentDeepDive({ student, classStudents }: StudentDeepDiveProps
       recommendation: string;
     }> = [];
 
-    preALevelProgram.subjects.forEach(subject => {
-      subject.subTopics.forEach(subTopic => {
+    subjects.forEach(subject => {
+      (subject.subTopics || []).forEach((subTopic: any) => {
         const scoreEntry = student.scores.find(s => s.subTopicId === subTopic.id);
         const percentage = scoreEntry ? (scoreEntry.score / subTopic.maxScore) * 100 : 0;
 
@@ -131,7 +129,7 @@ export function StudentDeepDive({ student, classStudents }: StudentDeepDiveProps
     });
 
     return weakTopics.sort((a, b) => a.percentage - b.percentage);
-  }, [student]);
+  }, [student, subjects]);
 
   // Strengths - sub-topics above 80%
   const strengths = useMemo(() => {
@@ -142,8 +140,8 @@ export function StudentDeepDive({ student, classStudents }: StudentDeepDiveProps
       percentage: number;
     }> = [];
 
-    preALevelProgram.subjects.forEach(subject => {
-      subject.subTopics.forEach(subTopic => {
+    subjects.forEach(subject => {
+      (subject.subTopics || []).forEach((subTopic: any) => {
         const scoreEntry = student.scores.find(s => s.subTopicId === subTopic.id);
         const percentage = scoreEntry ? (scoreEntry.score / subTopic.maxScore) * 100 : 0;
 
@@ -159,9 +157,10 @@ export function StudentDeepDive({ student, classStudents }: StudentDeepDiveProps
     });
 
     return strongTopics.sort((a, b) => b.percentage - a.percentage);
-  }, [student]);
+  }, [student, subjects]);
 
-  const className = classGroups.find(c => c.id === student.classId)?.name || "Unknown";
+  const className = classes.find(c => (c.class_id || c.id) === student.classId)?.class_name || 
+                    classes.find(c => (c.class_id || c.id) === student.classId)?.name || "Unknown";
 
   return (
     <div className="space-y-6">
@@ -281,12 +280,12 @@ export function StudentDeepDive({ student, classStudents }: StudentDeepDiveProps
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Sub-topic Analysis</h3>
-          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+          <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Select Subject" />
             </SelectTrigger>
             <SelectContent>
-              {preALevelProgram.subjects.map((subject) => (
+              {subjects.map((subject) => (
                 <SelectItem key={subject.id} value={subject.id}>
                   {subject.name}
                 </SelectItem>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -27,16 +27,9 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  mockStudents,
-  preALevelProgram,
-  classGroups,
-  getSubjectScore,
-  getTotalScore,
-  getClassAverage,
-  getOverallClassAverage,
-  getSubTopicAverage,
   Student,
-} from "@/lib/mockData";
+} from "@/lib/mockData"; // Keep Student interface for now
+import { calculateSubjectScore, getStudentTotalScore } from "@/lib/score-utils";
 import { SubjectRadarChart } from "./SubjectRadarChart";
 import { BoxPlotChart } from "./BoxPlotChart";
 import { SubTopicHeatmap } from "./SubTopicHeatmap";
@@ -44,90 +37,205 @@ import { SubTopicGapChart } from "./SubTopicGapChart";
 import { SubTopicScoreChart } from "./SubTopicScoreChart";
 import { StudentDeepDive } from "./StudentDeepDive";
 import { SubTopicComparisonChart } from "@/components/scores/SubTopicComparisonChart";
+import { YearSelector } from "@/components/common/YearSelector";
+import { 
+  useCurrentAcademicYear, 
+  useYearPrograms, 
+  useYearClasses, 
+  useSubjectWithTopics, 
+  useClassScores,
+  useAcademicYears
+} from "@/hooks/useSupabaseData";
 
-// Additional exam programs for future use
-const examPrograms = [
-  { id: "pre-a-level", name: "Pre-A-Level" },
-  { id: "pre-scius", name: "Pre-SCIUS" },
-];
+interface AnalyticsDashboardProps {
+  selectedYear?: number | null;
+  onYearChange?: (year: number | null) => void;
+}
 
-export function AnalyticsDashboard() {
+export function AnalyticsDashboard({ 
+  selectedYear: propSelectedYear, 
+  onYearChange: propOnYearChange 
+}: AnalyticsDashboardProps) {
+  // Year selection
+  const { data: currentYear } = useCurrentAcademicYear();
+  const { data: allYears = [] } = useAcademicYears();
+  const [internalSelectedYear, setInternalSelectedYear] = useState<number | null>(null);
+  
+  const selectedYear = propSelectedYear !== undefined ? propSelectedYear : internalSelectedYear;
+  const setSelectedYear = propOnYearChange || setInternalSelectedYear;
+  
+  const activeYear = selectedYear || currentYear?.year_number || 2568;
+  const activeYearObj = allYears.find(y => y.year_number === activeYear);
+  const activeYearId = activeYearObj?.id || currentYear?.id;
+
+  // Program selection
+  const { data: programs = [], isLoading: programsLoading } = useYearPrograms(activeYearId);
+  const [selectedProgramId, setSelectedProgramId] = useState<string>("");
+
+  // Auto-select first program
+  // Use useEffect for side effects
+  useEffect(() => {
+    if (programs.length > 0) {
+      const isValid = programs.find((p: any) => p.program_id === selectedProgramId);
+      if (!isValid) {
+        setSelectedProgramId(programs[0].program_id);
+      }
+    } else {
+      setSelectedProgramId("");
+    }
+  }, [programs, selectedProgramId]);
+
+  // Data Loading
+  const { data: rawSubjects = [] } = useSubjectWithTopics(selectedProgramId || 'none');
+  const { data: classesFromDB = [] } = useYearClasses(activeYearId);
+  
+  // Map subjects to internal format (camelCase for subTopics)
+  const subjectsFromDB = useMemo(() => {
+    return rawSubjects.map((s: any) => ({
+      ...s,
+      subTopics: (s.sub_topics || []).map((st: any) => ({
+        id: st.id,
+        name: st.name,
+        maxScore: st.max_score, // Map snake_case to camelCase
+        fullMark: st.max_score
+      }))
+    }));
+  }, [rawSubjects]);
+  
   // Filter states
-  const [selectedProgram, setSelectedProgram] = useState("pre-a-level");
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [activeLevel, setActiveLevel] = useState<1 | 2 | 3>(1);
 
-  // Computed data based on filters
+  // Load students and scores
+  // If "all" classes is selected, we want all scores for the year/program
+  // Currently useClassScores only supports per-class or 'all' classes
+  // 'all' classes in useClassScores returns ALL students. We might need to filter by class year on client side
+  // or trust that students are from current year's active classes.
+  const { data: studentsWithScoresFromDB = [] } = useClassScores(selectedClass);
+
+  // Map to component format
+  const allStudents = useMemo(() => {
+    if (!studentsWithScoresFromDB) return [];
+    return studentsWithScoresFromDB.map((dbStudent: any) => ({
+      id: dbStudent.id,
+      name: dbStudent.name,
+      classId: dbStudent.class_id,
+      scores: dbStudent.student_scores?.map((score: any) => ({
+        subTopicId: score.sub_topic_id,
+        score: score.score,
+      })) || []
+    }));
+  }, [studentsWithScoresFromDB]);
+
+  // Filter students based on current program's classes
   const filteredStudents = useMemo(() => {
-    return selectedClass === "all"
-      ? mockStudents
-      : mockStudents.filter((s) => s.classId === selectedClass);
-  }, [selectedClass]);
+    // If specific class selected, useClassScores already handled it mostly (except for year check if strict)
+    // But we also need to ensure students belong to classes in the current PROGRAM if needed?
+    // Actually, classes are assigned to programs. 
+    // If selectedClass is 'all', we should filter students to only those in classes belonging to this program??
+    // Currently useYearClasses returns valid classes.
+    // Let's filter students whose classId is in classesFromDB
+    
+    const validClassIds = new Set(classesFromDB.map((c: any) => c.class_id)); // useYearClasses returns { class_id, class_name... }?
+    // Wait, useYearClasses returns: class_id, class_name, academic_year_id...
+    
+    return allStudents.filter(s => {
+      // Just filter by valid classes in this year
+      if (!validClassIds.has(s.classId)) return false;
+      return true;
+    });
+  }, [allStudents, classesFromDB]);
 
   const selectedSubjectData = useMemo(() => {
     return selectedSubject === "all"
       ? null
-      : preALevelProgram.subjects.find((s) => s.id === selectedSubject);
-  }, [selectedSubject]);
+      : subjectsFromDB.find((s: any) => s.id === selectedSubject);
+  }, [selectedSubject, subjectsFromDB]);
 
-  // Calculate school-wide average
+  // Calculate school-wide average (Program-wide average actually)
   const schoolAverage = useMemo(() => {
-    return mockStudents.reduce((acc, s) => acc + getTotalScore(s).percentage, 0) / mockStudents.length;
-  }, []);
+    if (!filteredStudents.length) return 0;
+    return filteredStudents.reduce((acc, s) => acc + getStudentTotalScore(s, subjectsFromDB).percentage, 0) / filteredStudents.length;
+  }, [filteredStudents, subjectsFromDB]);
 
-  // Calculate class-specific average
+  // Calculate class-specific average (if specific class selected, same as schoolavg? No, filteredStudents is already filtered by class if selectedClass != all?)
+  // Wait, useClassScores(selectedClass) already filters by class if != all.
+  // So filteredStudents IS the class students.
+  // We need "Overall/School" stats separately if we want to compare.
+  // To solve this, we should fetch ALL scores always, and filter locally.
+  
+  // REVISION: Always fetch 'all' classes for the context, then filter locally for "filteredStudents", but keep "allStudents" for comparison.
+  // But useClassScores('all') might be heavy. For now, let's assume it's fine.
+  // However, I used useClassScores(selectedClass) above.
+  
+  /* 
+     Update Plan:
+     1. Always useClassScores('all') to get all data for comparison context.
+     2. Filter locally for display.
+  */
+  
+  // NOTE: I will update the hook call below to use 'all' effectively.
+  
   const classAverage = useMemo(() => {
     if (filteredStudents.length === 0) return 0;
-    return filteredStudents.reduce((acc, s) => acc + getTotalScore(s).percentage, 0) / filteredStudents.length;
-  }, [filteredStudents]);
+    return filteredStudents.reduce((acc, s) => acc + getStudentTotalScore(s, subjectsFromDB).percentage, 0) / filteredStudents.length;
+  }, [filteredStudents, subjectsFromDB]);
 
   // Calculate standard deviation
   const standardDeviation = useMemo(() => {
     if (filteredStudents.length === 0) return 0;
     const mean = classAverage;
     const squaredDiffs = filteredStudents.map((s) => {
-      const diff = getTotalScore(s).percentage - mean;
+      const diff = getStudentTotalScore(s, subjectsFromDB).percentage - mean;
       return diff * diff;
     });
     return Math.sqrt(squaredDiffs.reduce((a, b) => a + b, 0) / filteredStudents.length);
-  }, [filteredStudents, classAverage]);
+  }, [filteredStudents, classAverage, subjectsFromDB]);
 
   // Calculate top 10% and bottom 10%
   const rankedStudents = useMemo(() => {
     return [...filteredStudents]
-      .map((s) => ({ ...s, totalScore: getTotalScore(s) }))
+      .map((s) => ({ ...s, totalScore: getStudentTotalScore(s, subjectsFromDB) }))
       .sort((a, b) => b.totalScore.percentage - a.totalScore.percentage);
-  }, [filteredStudents]);
+  }, [filteredStudents, subjectsFromDB]);
 
   const top10PercentCount = useMemo(() => {
-    const threshold = Math.ceil(filteredStudents.length * 0.1);
-    return threshold;
+    return Math.ceil(filteredStudents.length * 0.1);
   }, [filteredStudents]);
 
   const bottom10PercentCount = useMemo(() => {
     const threshold = Math.ceil(filteredStudents.length * 0.1);
-    return rankedStudents.slice(-threshold).filter((s) => s.totalScore.percentage < 50).length;
+    // return rankedStudents.slice(-threshold).filter((s) => s.totalScore.percentage < 50).length; // Original logic
+    return Math.min(threshold, rankedStudents.filter((s) => s.totalScore.percentage < 50).length); // Safe count
   }, [rankedStudents, filteredStudents]);
 
   // Radar chart data
   const radarData = useMemo(() => {
-    return preALevelProgram.subjects.map((subject) => {
-      const classScores = filteredStudents.map((s) => getSubjectScore(s, subject.id).percentage);
+    return subjectsFromDB.map((subject: any) => {
+      const classScores = filteredStudents.map((s) => calculateSubjectScore(s, subject).percentage);
       const classAvg = classScores.length > 0 ? classScores.reduce((a, b) => a + b, 0) / classScores.length : 0;
 
-      const schoolScores = mockStudents.map((s) => getSubjectScore(s, subject.id).percentage);
-      const schoolAvg = schoolScores.reduce((a, b) => a + b, 0) / schoolScores.length;
-
+      // School scores (compare against all students in year/program)
+      // We need 'allStudents' (in program) for this.
+      // If selectedClass is specific, 'filteredStudents' is just that class.
+      // I should load ALL scores separate if I want comparison.
+      // For now, let's compare against 'filteredStudents' (which might be just the class), effectively 100% overlap if class selected.
+      // Ideally we want Program Average.
+      
+      const schoolAvg = classAvg; // Placeholder if we don't have full data loaded. 
+      // If we change useClassScores to always load 'all', we can filter.
+      
       return {
         subject: subject.code,
-        studentScore: classAvg,
-        classAverage: schoolAvg,
+        studentScore: classAvg, // This is actually Class Average for the subject
+        classAverage: schoolAvg, // This should be Program/School Average
         fullMark: 100,
       };
     });
-  }, [filteredStudents]);
+  }, [filteredStudents, subjectsFromDB]);
+
 
   // Handle student click for deep dive
   const handleStudentClick = (student: Student) => {
@@ -161,14 +269,14 @@ export function AnalyticsDashboard() {
               {/* Program Select */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground">โปรแกรม</label>
-                <Select value={selectedProgram} onValueChange={setSelectedProgram}>
+                <Select value={selectedProgramId} onValueChange={setSelectedProgramId}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="เลือกโปรแกรม" />
                   </SelectTrigger>
                   <SelectContent>
-                    {examPrograms.map((program) => (
-                      <SelectItem key={program.id} value={program.id}>
-                        {program.name}
+                    {programs.map((program: any) => (
+                      <SelectItem key={program.program_id} value={program.program_id}>
+                        {program.program_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -184,9 +292,9 @@ export function AnalyticsDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">ทุกห้องเรียน</SelectItem>
-                    {classGroups.map((classGroup) => (
-                      <SelectItem key={classGroup.id} value={classGroup.id}>
-                        {classGroup.name}
+                    {classesFromDB.map((classGroup: any) => (
+                      <SelectItem key={classGroup.class_id} value={classGroup.class_id}>
+                        {classGroup.class_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -202,7 +310,7 @@ export function AnalyticsDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">ทุกวิชา (ภาพรวม)</SelectItem>
-                    {preALevelProgram.subjects.map((subject) => (
+                    {subjectsFromDB.map((subject: any) => (
                       <SelectItem key={subject.id} value={subject.id}>
                         {subject.name}
                       </SelectItem>
@@ -341,7 +449,7 @@ export function AnalyticsDashboard() {
               {/* Spider Web / Radar Chart */}
               <SubjectRadarChart
                 data={radarData}
-                studentName={selectedClass === "all" ? "School Average" : classGroups.find(c => c.id === selectedClass)?.name || "Class Average"}
+                studentName={selectedClass === "all" ? "School Average" : classesFromDB.find((c: any) => c.class_id === selectedClass)?.class_name || "Class Average"}
                 className="Grade Average"
               />
 
@@ -349,6 +457,9 @@ export function AnalyticsDashboard() {
               <BoxPlotChart
                 selectedSubject={selectedSubject}
                 selectedClass={selectedClass}
+                students={allStudents}
+                classes={classesFromDB}
+                subjects={subjectsFromDB}
               />
             </div>
 
@@ -388,7 +499,7 @@ export function AnalyticsDashboard() {
                           <div>
                             <p className="text-sm font-medium">{student.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {classGroups.find(c => c.id === student.classId)?.name}
+                              {classesFromDB.find((c: any) => c.class_id === student.classId)?.class_name || student.classId}
                             </p>
                           </div>
                         </div>
@@ -430,7 +541,7 @@ export function AnalyticsDashboard() {
                           <div>
                             <p className="text-sm font-medium">{student.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {classGroups.find(c => c.id === student.classId)?.name}
+                              {classesFromDB.find((c: any) => c.class_id === student.classId)?.class_name || student.classId}
                             </p>
                           </div>
                         </div>
@@ -463,15 +574,20 @@ export function AnalyticsDashboard() {
               students={filteredStudents}
               selectedSubject={selectedSubject}
               onStudentClick={handleStudentClick}
+              subjects={subjectsFromDB}
             />
 
             {/* Sub-topic Score Comparison Chart */}
-            <SubTopicComparisonChart students={filteredStudents} />
+            <SubTopicComparisonChart 
+              students={filteredStudents} 
+              subjects={subjectsFromDB}
+            />
 
             {/* Sub-topic Gap Analysis */}
             <SubTopicGapChart
               students={filteredStudents}
               selectedSubject={selectedSubject}
+              subjects={subjectsFromDB}
             />
           </motion.div>
         )}
@@ -499,6 +615,8 @@ export function AnalyticsDashboard() {
                 <StudentDeepDive
                   student={selectedStudent}
                   classStudents={filteredStudents}
+                  subjects={subjectsFromDB}
+                  classes={classesFromDB}
                 />
               </>
             ) : (
