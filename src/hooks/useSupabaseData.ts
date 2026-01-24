@@ -319,6 +319,12 @@ export function useClassScores(classId: string = 'all') {
       
       const { data, error } = await studentsQuery;
       if (error) throw error;
+      
+      // Validate response
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid response format: expected array of students');
+      }
+      
       return data;
     },
   });
@@ -329,6 +335,7 @@ export function useClassScores(classId: string = 'all') {
 // Update single score
 export function useUpdateStudentScore() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ 
@@ -342,6 +349,14 @@ export function useUpdateStudentScore() {
       score: number;
       academicYear: number;
     }) => {
+      // Input validation
+      if (!studentId || !subTopicId) {
+        throw new Error('Missing required fields: studentId, subTopicId');
+      }
+      if (score < 0) {
+        throw new Error('Score cannot be negative');
+      }
+
       const { data, error } = await supabase
         .from('student_scores')
         .upsert({
@@ -349,21 +364,67 @@ export function useUpdateStudentScore() {
           sub_topic_id: subTopicId,
           score,
           academic_year: academicYear,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          updated_by: user?.id
         }, { onConflict: 'student_id, sub_topic_id' })
         .select()
         .single();
 
       if (error) throw error;
+      
+      // Response validation
+      if (!data) {
+        throw new Error('Server returned no data');
+      }
+      if (data.score !== score) {
+        throw new Error(
+          `Score mismatch: sent ${score}, received ${data.score}. ` +
+          'Server-side validation may have rejected your value.'
+        );
+      }
+      
       return data;
+    },
+    onMutate: async (newData) => {
+      // Optimistic update
+      await queryClient.cancelQueries({ 
+        queryKey: queryKeys.studentScores(newData.studentId) 
+      });
+      
+      const previousData = queryClient.getQueryData(
+        queryKeys.studentScores(newData.studentId)
+      );
+      
+      // Update cache optimistically
+      queryClient.setQueryData(
+        queryKeys.studentScores(newData.studentId),
+        (old: any[]) => {
+          if (!old) return old;
+          return old.map(score =>
+            score.sub_topic_id === newData.subTopicId
+              ? { ...score, score: newData.score }
+              : score
+          );
+        }
+      );
+      
+      return { previousData };
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.studentScores(variables.studentId) });
       queryClient.invalidateQueries({ queryKey: ['class_scores'] });
       queryClient.invalidateQueries({ queryKey: ['student_scores_by_year'] });
+      toast.success('Score updated successfully');
     },
-    onError: (error: Error) => {
-      toast.error(`เกิดข้อผิดพลาดในการบันทึกคะแนน: ${error.message}`);
+    onError: (error: Error, variables, context: any) => {
+      // Rollback optimistic update
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          queryKeys.studentScores(variables.studentId),
+          context.previousData
+        );
+      }
+      toast.error(`Failed to update score: ${error.message}`);
     },
   });
 }
@@ -1590,23 +1651,52 @@ export function useDeleteClass() {
 
 // Create new user (manual admin provisioning)
 export function useCreateUser() {
+  const { user: adminUser } = useAuth();
+  const queryClient = useQueryClient();
+  
   return useMutation({
-    mutationFn: async (data: { email: string; password: string; fullName: string; role: string }) => {
+    mutationFn: async (data: { 
+      email: string; 
+      password: string; 
+      fullName: string; 
+      role: string 
+    }) => {
+      // Validate input
+      if (!data.email || !data.password || !data.fullName || !data.role) {
+        throw new Error('Missing required fields');
+      }
+      if (!['admin', 'teacher', 'student'].includes(data.role)) {
+        throw new Error('Invalid role');
+      }
+      if (data.password.length < 8) {
+        throw new Error('Password must be at least 8 characters');
+      }
+      
+      // Enhanced RPC with audit trail
       const { data: userId, error } = await supabase.rpc('create_new_user', {
         p_email: data.email,
         p_password: data.password,
         p_full_name: data.fullName,
-        p_role: data.role
+        p_role: data.role,
+        p_created_by: adminUser?.id
       });
       
       if (error) throw error;
+      
+      // Validate response
+      if (!userId) {
+        throw new Error('Server returned no user ID');
+      }
+      
       return userId;
     },
-    onSuccess: () => {
-      toast.success('สร้างผู้ใช้งานเรียบร้อยแล้ว');
+    onSuccess: (userId) => {
+      queryClient.invalidateQueries({ queryKey: ['teachers_list'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      toast.success(`User created: ${userId}`);
     },
     onError: (error: Error) => {
-      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+      toast.error(`Failed to create user: ${error.message}`);
     },
   });
 }

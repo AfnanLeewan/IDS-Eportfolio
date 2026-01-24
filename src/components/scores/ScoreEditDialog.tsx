@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,7 @@ interface ScoreEditDialogProps {
   onOpenChange: (open: boolean) => void;
   student: Student | null;
   subject: Subject | null;
-  onSave: (studentId: string, scores: { subTopicId: string; score: number }[]) => void;
+  onSave: (studentId: string, scores: { subTopicId: string; score: number }[]) => Promise<void>;
 }
 
 export function ScoreEditDialog({
@@ -27,6 +28,8 @@ export function ScoreEditDialog({
   onSave,
 }: ScoreEditDialogProps) {
   const [editedScores, setEditedScores] = useState<Record<string, number>>({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Initialize scores when dialog opens
   const handleOpenChange = (isOpen: boolean) => {
@@ -37,6 +40,7 @@ export function ScoreEditDialog({
         initialScores[subTopic.id] = scoreEntry?.score || 0;
       });
       setEditedScores(initialScores);
+      setSaveError(null);
     }
     onOpenChange(isOpen);
   };
@@ -45,16 +49,51 @@ export function ScoreEditDialog({
     const numValue = parseInt(value) || 0;
     const clampedValue = Math.max(0, Math.min(numValue, maxScore));
     setEditedScores((prev) => ({ ...prev, [subTopicId]: clampedValue }));
+    setSaveError(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!student || !subject) return;
-    const scores = Object.entries(editedScores).map(([subTopicId, score]) => ({
-      subTopicId,
-      score,
-    }));
-    onSave(student.id, scores);
-    onOpenChange(false);
+    
+    // Validate before sending
+    const hasChanges = Object.keys(editedScores).some(
+      (subTopicId) => {
+        const original = student.scores.find((s) => s.subTopicId === subTopicId)?.score ?? 0;
+        return editedScores[subTopicId] !== original;
+      }
+    );
+    
+    if (!hasChanges) {
+      setSaveError('No changes to save');
+      return;
+    }
+    
+    setIsSaving(true);
+    setSaveError(null);
+    
+    try {
+      const scores = Object.entries(editedScores).map(([subTopicId, score]) => ({
+        subTopicId,
+        score,
+      }));
+      
+      // AWAIT the save operation
+      await onSave(student.id, scores);
+      
+      // Only close AFTER successful save
+      onOpenChange(false);
+      
+    } catch (error) {
+      // Show error and keep dialog open
+      setSaveError(
+        error instanceof Error 
+          ? error.message 
+          : 'Failed to save. Please try again.'
+      );
+      console.error('Save error:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!student || !subject) return null;
@@ -66,6 +105,13 @@ export function ScoreEditDialog({
           <DialogTitle>Edit Scores - {student.name}</DialogTitle>
           <p className="text-sm text-muted-foreground">{subject.name}</p>
         </DialogHeader>
+        
+        {saveError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md text-sm">
+            {saveError}
+          </div>
+        )}
+        
         <div className="space-y-4 py-4">
           {subject.subTopics.map((subTopic) => (
             <div key={subTopic.id} className="flex items-center gap-4">
@@ -79,6 +125,7 @@ export function ScoreEditDialog({
                   onChange={(e) =>
                     handleScoreChange(subTopic.id, e.target.value, subTopic.maxScore)
                   }
+                  disabled={isSaving}
                   className="w-20 text-center"
                 />
                 <span className="text-sm text-muted-foreground">/ {subTopic.maxScore}</span>
@@ -87,11 +134,26 @@ export function ScoreEditDialog({
           ))}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            disabled={isSaving}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} className="gradient-primary text-primary-foreground">
-            Save Changes
+          <Button 
+            onClick={handleSave} 
+            disabled={isSaving}
+            className="gradient-primary text-primary-foreground"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

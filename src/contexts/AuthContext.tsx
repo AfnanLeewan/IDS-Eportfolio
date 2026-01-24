@@ -70,37 +70,67 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // Add mounted flag to prevent state updates after unmount
+    let isMounted = true;
+    let loadingCheck = { listener: false, session: false };  // Track which completed
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (!isMounted) return;  // Don't update if component unmounted
+        
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Defer data fetching with setTimeout to avoid deadlock
         if (session?.user) {
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-          }, 0);
+          fetchUserData(session.user.id);
         } else {
           setProfile(null);
           setRole(null);
         }
-        setLoading(false);
+        
+        // Mark listener done
+        loadingCheck.listener = true;
+        // Only set loading to false when BOTH are complete
+        if (loadingCheck.listener && loadingCheck.session) {
+          setLoading(false);
+        }
       }
     );
 
-    // THEN check for existing session
+    // Check for existing session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return;  // Check mounted before updating
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
         await fetchUserData(session.user.id);
       }
-      setLoading(false);
+      
+      // Mark session check done
+      loadingCheck.session = true;
+      // Only set loading to false when BOTH are complete
+      if (loadingCheck.listener && loadingCheck.session) {
+        setLoading(false);
+      }
+    }).catch((error) => {
+      // Handle errors from getSession
+      console.error('Failed to get session:', error);
+      if (isMounted) {
+        loadingCheck.session = true;
+        if (loadingCheck.listener && loadingCheck.session) {
+          setLoading(false);
+        }
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // Cleanup: Mark unmounted
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

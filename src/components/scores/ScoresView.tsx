@@ -8,7 +8,8 @@ import {
   TrendingDown,
   Minus,
   Trash2,
-  Plus
+  Plus,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -146,7 +147,7 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
   const [expandedSubjects, setExpandedSubjects] = useState<string[]>([]);
   
   // Load students with scores using useClassScores
-  const { data: studentsWithScoresFromDB = [], isLoading: studentsLoading } = useClassScores(selectedClass);
+  const { data: studentsWithScoresFromDB = [], isLoading: studentsLoading, error: studentsError } = useClassScores(selectedClass);
 
   // Map DB data to component format
   const students = useMemo(() => {
@@ -170,6 +171,9 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedSubjectForEdit, setSelectedSubjectForEdit] = useState<Subject | null>(null);
+  const [isSavingDialog, setIsSavingDialog] = useState(false);
+  const [cellLoadingState, setCellLoadingState] = useState<Record<string, boolean>>({});
+  const cellKey = (sid: string, stid: string) => `${sid}-${stid}`;
 
   // ALL HOOKS MUST BE CALLED BEFORE ANY EARLY RETURNS!
 
@@ -224,16 +228,18 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
   // NOW it's safe to do early returns AFTER all hooks are called
   
   // Show error state
-  if (subjectsError) {
+  if (subjectsError || studentsError) {
     return (
       <div className="flex items-center justify-center h-64">
         <Card className="p-6 max-w-md">
           <CardHeader>
-            <CardTitle className="text-destructive">Error Loading Subjects</CardTitle>
+            <CardTitle className="text-destructive">
+              {subjectsError ? 'Error Loading Subjects' : 'Error Loading Students'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              {subjectsError.message || 'Failed to load subjects from database'}
+              {subjectsError?.message || studentsError?.message || 'Failed to load data from database'}
             </p>
             <Button onClick={() => window.location.reload()}>
               Reload Page
@@ -312,39 +318,77 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
     setEditDialogOpen(true);
   };
 
-
-
-
-
-  // const handleSaveScores = (studentId: string, newScores: { subTopicId: string; score: number }[]) => {
-  //   setStudents((prev) =>
-  //     prev.map((student) => {
-  //       if (student.id !== studentId) return student;
-  //       const updatedScores = student.scores.map((score) => {
-  //         const newScore = newScores.find((ns) => ns.subTopicId === score.subTopicId);
-  //         return newScore ? { ...score, score: newScore.score } : score;
-  //       });
-  //       return { ...student, scores: updatedScores };
-  //     })
-  //   );
-  //   toast.success("อัปเดตคะแนนเรียบร้อยแล้ว");
-  // };
-
   // Handlers
-  const handleSaveScores = async (studentId: string, newScores: { subTopicId: string; score: number }[]) => {
+  const handleSaveScores = async (
+    studentId: string, 
+    newScores: { subTopicId: string; score: number }[]
+  ) => {
+    // GUARD: Prevent double-click
+    if (isSavingDialog || updateScoresMutation.isPending) {
+      toast.info('Save in progress. Please wait.');
+      return;
+    }
+    
+    // INPUT VALIDATION
+    if (!studentId) {
+      toast.error('No student selected');
+      return;
+    }
+    if (!newScores || newScores.length === 0) {
+      toast.error('No scores to save');
+      return;
+    }
+    
+    setIsSavingDialog(true);
+    
     try {
-       await updateScoresMutation.mutateAsync({
-         studentId,
-         scores: newScores,
-         academicYear: activeYear
-       });
-       setEditDialogOpen(false);
+      // AWAIT mutation completely
+      const result = await updateScoresMutation.mutateAsync({
+        studentId,
+        scores: newScores,
+        academicYear: activeYear
+      });
+      
+      // VALIDATE result
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        throw new Error('No scores were saved. Please try again.');
+      }
+      
+      // Verify each score was saved correctly
+      for (const newScore of newScores) {
+        const saved = result.find((r: any) => r.sub_topic_id === newScore.subTopicId);
+        if (!saved || saved.score !== newScore.score) {
+          throw new Error(
+            `Score mismatch for sub-topic ${newScore.subTopicId}: ` +
+            `expected ${newScore.score}, got ${saved?.score ?? 'missing'}`
+          );
+        }
+      }
+      
+      // Only close AFTER successful validation
+      setEditDialogOpen(false);
+      // Success toast handled by mutation
+      
     } catch (error) {
-      console.error("Failed to save scores:", error);
+      // SHOW ERROR and keep form open for retry
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to save scores: ${errorMessage}`);
+      // Form dialog stays open, user can edit and retry
+    } finally {
+      setIsSavingDialog(false);
     }
   };
 
-  const handleInlineScoreUpdate = async (studentId: string, subTopicId: string, newScore: number) => {
+  const handleInlineScoreUpdate = async (
+    studentId: string, 
+    subTopicId: string, 
+    newScore: number
+  ) => {
+    const key = cellKey(studentId, subTopicId);
+    
+    // Show loading state on cell
+    setCellLoadingState(prev => ({ ...prev, [key]: true }));
+    
     try {
       await updateScoreMutation.mutateAsync({
         studentId,
@@ -352,8 +396,25 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
         score: newScore,
         academicYear: activeYear
       });
+      
+      // Success feedback handled by mutation/toast
+      
     } catch (error) {
-      console.error("Failed to update score inline:", error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to update: ${errorMsg}`);
+      console.error('Inline score update failed:', error);
+      
+      // Note: Full rollback requires local state management of students array,
+      // but react-query's onError in useUpdateStudentScore handles cache rollback.
+      // We just need to ensure UI reflects that.
+      
+    } finally {
+      // Clear loading state
+      setCellLoadingState(prev => {
+        const newState = { ...prev };
+        delete newState[key];
+        return newState;
+      });
     }
   };
 
@@ -529,7 +590,7 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
             getScoreBadge={getScoreBadge}
             getTrendIcon={getTrendIcon}
             onEdit={handleEditClick}
-
+            cellLoadingState={cellLoadingState} // Passed prop
             onInlineScoreUpdate={handleInlineScoreUpdate}
             calculateSubjectScore={calculateSubjectScore}
           />
@@ -544,10 +605,6 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
         subject={selectedSubjectForEdit}
         onSave={handleSaveScores}
       />
-
-
-
-
     </div>
   );
 }
@@ -562,6 +619,7 @@ interface SubjectScoreTableProps {
   getScoreBadge: (percentage: number) => { label: string; className: string };
   getTrendIcon: (studentScore: number, classAverage: number) => React.ReactNode;
   onEdit: (student: Student, subject: Subject) => void;
+  cellLoadingState: Record<string, boolean>; // Added prop
   onInlineScoreUpdate: (studentId: string, subTopicId: string, newScore: number) => void;
   calculateSubjectScore: (student: Student, subject: Subject) => { score: number; maxScore: number; percentage: number };
 }
@@ -576,12 +634,14 @@ function SubjectScoreTable({
   getScoreBadge,
   getTrendIcon,
   onEdit,
+  cellLoadingState, // Added prop
   onInlineScoreUpdate,
   calculateSubjectScore,
 }: SubjectScoreTableProps) {
   const [editingCell, setEditingCell] = useState<{ studentId: string; subTopicId: string } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const cellKey = (sid: string, stid: string) => `${sid}-${stid}`;
 
   // Calculate subject statistics
   const subjectStats = useMemo(() => {
@@ -743,9 +803,16 @@ function SubjectScoreTable({
                             const score = scoreEntry?.score || 0;
                             const percentage = (score / subTopic.maxScore) * 100;
                             const isEditing = editingCell?.studentId === student.id && editingCell?.subTopicId === subTopic.id;
+                            const isLoading = cellLoadingState[cellKey(student.id, subTopic.id)];
                             
                             return (
-                              <TableCell key={subTopic.id} className="text-center p-1">
+                              <TableCell
+                                key={subTopic.id}
+                                className={cn(
+                                  "text-center p-1",
+                                  isLoading && "opacity-60 pointer-events-none"
+                                )}
+                              >
                                 {isEditing ? (
                                   <div className="flex items-center justify-center gap-1">
                                     <input
@@ -761,20 +828,25 @@ function SubjectScoreTable({
                                     />
                                   </div>
                                 ) : (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span 
-                                        className={cn(
-                                          "font-medium cursor-pointer px-2 py-1 rounded hover:bg-muted transition-colors inline-block min-w-[32px]",
-                                          getScoreColor(percentage)
-                                        )}
-                                        onDoubleClick={() => handleDoubleClick(student.id, subTopic.id, score)}
-                                      >
-                                        {score}
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Double-click to edit</TooltipContent>
-                                  </Tooltip>
+                                  <div className="flex items-center justify-center">
+                                    {isLoading && (
+                                      <Loader2 className="h-4 w-4 inline-block animate-spin mr-2" />
+                                    )}
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span 
+                                          className={cn(
+                                            "font-medium cursor-pointer px-2 py-1 rounded hover:bg-muted transition-colors inline-block min-w-[32px]",
+                                            getScoreColor(percentage)
+                                          )}
+                                          onDoubleClick={() => handleDoubleClick(student.id, subTopic.id, score)}
+                                        >
+                                          {score}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Double-click to edit</TooltipContent>
+                                    </Tooltip>
+                                  </div>
                                 )}
                               </TableCell>
                             );
@@ -798,6 +870,7 @@ function SubjectScoreTable({
               </div>
             </CardContent>
           </CollapsibleContent>
+
         </Card>
       </Collapsible>
     </motion.div>

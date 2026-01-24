@@ -8,8 +8,14 @@ import { toast } from 'sonner';
 /**
  * Subscribe to real-time score changes for a class
  */
+import { useAuth } from '@/contexts/AuthContext';
+
+/**
+ * Subscribe to real-time score changes for a class
+ */
 export function useRealtimeScores(classId: string | null, enabled: boolean = true) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   useEffect(() => {
     if (!enabled || !classId) return;
@@ -26,32 +32,53 @@ export function useRealtimeScores(classId: string | null, enabled: boolean = tru
         (payload) => {
           console.log('Score change detected:', payload);
           
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            // Invalidate relevant queries
-            queryClient.invalidateQueries({ queryKey: queryKeys.classScores(classId) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.classStats(classId) });
+          // CHECK: Is this change from the current user?
+          const isOwnChange = payload.new?.updated_by === user?.id;
+          
+          if (isOwnChange) {
+            // This is our change, wait for local mutation to complete
+            // Don't invalidate to prevent losing optimistic update
+            console.log('Own change detected, local mutation will handle cache');
+          } else {
+            // Change from another user, safe to invalidate
+            queryClient.invalidateQueries({ 
+              queryKey: queryKeys.classScores(classId) 
+            });
+            queryClient.invalidateQueries({ 
+              queryKey: queryKeys.classStats(classId) 
+            });
             
-            // Show notification
-            const action = payload.eventType === 'INSERT' ? 'เพิ่ม' : 'อัปเดต';
-            toast.info(`มีการ${action}คะแนนใหม่`, {
-              description: 'ข้อมูลได้รับการอัปเดตแล้ว',
-              duration: 3000,
-            });
-          } else if (payload.eventType === 'DELETE') {
-            queryClient.invalidateQueries({ queryKey: queryKeys.classScores(classId) });
-            toast.info('มีการลบคะแนน', {
-              description: 'ข้อมูลได้รับการอัปเดตแล้ว',
-              duration: 3000,
-            });
+            // Notify user about external change
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const action = payload.eventType === 'INSERT' ? 'added' : 'updated';
+              // We might not have student name here easily without joining, 
+              // so generic message or try to use payload info if available
+              toast.info(`Score ${action} by another user`, {
+                description: 'Data has been updated',
+                duration: 3000,
+              });
+            } else if (payload.eventType === 'DELETE') {
+              toast.info('Score deleted by another user', {
+                description: 'Data has been updated',
+                duration: 3000,
+              });
+            }
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Real-time scores subscription active');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Real-time subscription error');
+          toast.error('Failed to subscribe to real-time updates');
+        }
+      });
     
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [classId, enabled, queryClient]);
+  }, [classId, enabled, queryClient, user?.id]);
 }
 
 /**
