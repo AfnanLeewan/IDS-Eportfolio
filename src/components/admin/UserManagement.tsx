@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { UserCSVUpload } from './UserCSVUpload';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -266,7 +267,9 @@ const UserManagement = () => {
                 </CardDescription>
               </div>
             </div>
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <div className="flex gap-2">
+              <UserCSVUpload />
+              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2">
                   <Plus className="h-4 w-4" />
@@ -336,6 +339,7 @@ const UserManagement = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
