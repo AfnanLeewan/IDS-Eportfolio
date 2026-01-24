@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Plus, Archive, Star, Edit2, Check, X } from 'lucide-react';
+import { Calendar, Plus, Archive, Star, Edit2, Check, X, Eye, RotateCcw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,6 +41,7 @@ export function AcademicYearManagement() {
   const setCurrentYear = useSetCurrentAcademicYear();
   const archiveYear = useArchiveAcademicYear();
   const updateYear = useUpdateAcademicYear();
+  const navigate = useNavigate();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
@@ -188,9 +190,34 @@ export function AcademicYearManagement() {
                       ปีปัจจุบัน
                     </Badge>
                   )}
+                  {!year.is_active && (
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-600 gap-1">
+                      <Archive className="h-3 w-3" />
+                      เก็บถาวร
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
+                  {/* For archived years: View Scores button (read-only) */}
+                  {!year.is_active && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        // Navigate to dashboard with this year selected (read-only mode)
+                        // The scores view will detect the archived year and disable editing
+                        window.localStorage.setItem('selectedYear', year.year_number.toString());
+                        navigate('/', { state: { view: 'dashboard' } });
+                      }}
+                      className="flex-1 text-primary border-primary hover:bg-primary/10"
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      ดูคะแนน (อ่านอย่างเดียว)
+                    </Button>
+                  )}
+                  
+                  {/* For active, non-current years: Set as current button */}
                   {!year.is_current && year.is_active && (
                     <Button
                       size="sm"
@@ -203,6 +230,8 @@ export function AcademicYearManagement() {
                       ตั้งเป็นปีปัจจุบัน
                     </Button>
                   )}
+                  
+                  {/* For active, non-current years: Archive button */}
                   {year.is_active && !year.is_current && (
                     <Button
                       size="sm"

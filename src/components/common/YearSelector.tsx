@@ -32,7 +32,7 @@ export function YearSelector({ value, onValueChange, className }: YearSelectorPr
     );
   }
 
-  const activeYears = years.filter(y => y.is_active);
+  const activeYears = years.filter(y => y.is_active || y.year_number === value);
 
   return (
     <Select 
@@ -52,6 +52,9 @@ export function YearSelector({ value, onValueChange, className }: YearSelectorPr
               {year.display_name}
               {year.is_current && (
                 <span className="text-xs text-emerald-600 font-medium">(ปัจจุบัน)</span>
+              )}
+              {!year.is_active && (
+                <span className="text-xs text-muted-foreground font-medium">(เก็บถาวร)</span>
               )}
             </div>
           </SelectItem>

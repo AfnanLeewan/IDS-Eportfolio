@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header, ViewMode } from "@/components/layout/Header";
 import { TeacherDashboard } from "@/components/dashboard/TeacherDashboard";
@@ -15,6 +15,7 @@ import { useCurrentStudent } from "@/hooks/useSupabaseData";
 
 const Index = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading, isAdmin, isTeacher, isStudent, role } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>("dashboard");
   
@@ -26,6 +27,15 @@ const Index = () => {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  // Handle view mode change from navigation state
+  useEffect(() => {
+    if (location.state && location.state.view) {
+      setViewMode(location.state.view as ViewMode);
+      // Clear state to prevent sticking
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   if (loading || !role || (isStudent && isStudentLoading)) {
     return (
@@ -136,7 +146,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border/50 bg-card/80 backdrop-blur-sm py-6">
         <div className="container text-center text-sm text-muted-foreground">
-          <p>แพลตฟอร์ม IDS E-Portfolio system • ระบบวิเคราะห์ผลสอบ Pre-A-Level</p>
+          <p>แพลตฟอร์ม IDS E-Portfolio system</p>
           <p className="mt-1 text-xs">
             คุณเข้าสู่ระบบในฐานะ: {role === 'admin' ? 'ผู้ดูแลระบบ' : role === 'teacher' ? 'ครู' : 'นักเรียน'}
           </p>

@@ -166,13 +166,17 @@ const Auth = () => {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 rounded-xl bg-primary/10">
-              <GraduationCap className="h-8 w-8 text-primary" />
+          <div className="flex items-center justify-center mb-8">
+            <div className="bg-white p-6 rounded-3xl shadow-sm flex items-center justify-center">
+              <img 
+                src="/Logo.png" 
+                alt="IDS Logo" 
+                className="h-32 w-auto object-contain"
+              />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">ระบบจัดการคะแนน</h1>
-          <p className="text-muted-foreground mt-2">เข้าสู่ระบบเพื่อดูและจัดการข้อมูลคะแนน</p>
+          <h1 className="text-2xl font-bold text-foreground">IDS E-Portfolio System</h1>
+          <p className="text-muted-foreground mt-2">เข้าสู่ระบบเพื่อตรวจสอบและจัดการข้อมูลคะแนน</p>
         </div>
 
         <Card className="border-border/50 shadow-lg">
