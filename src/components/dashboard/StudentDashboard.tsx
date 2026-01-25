@@ -23,9 +23,11 @@ import {
   useClassPrograms,
   useAssessments,
   useStudentScores,
-  useSubjectWithTopics
+  useSubjectWithTopics,
+  useCurrentAcademicYear
 } from "@/hooks/useSupabaseData";
 import { ScoreTrendDashboard } from "./ScoreTrendDashboard";
+import { YearSelector } from "@/components/common/YearSelector";
 
 interface StudentDashboardProps {
   student: any; // Database student object
@@ -45,6 +47,10 @@ const formatTimeAgo = (dateStr: string) => {
 };
 
 export function StudentDashboard({ student }: StudentDashboardProps) {
+  const { data: currentYear } = useCurrentAcademicYear();
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const activeYear = selectedYear || currentYear?.year_number || 2568;
+
   const [showAnnouncements, setShowAnnouncements] = useState(true);
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [selectedProgramId, setSelectedProgramId] = useState<string>("");
@@ -76,11 +82,21 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
   const { data: allScores = [] } = useStudentScores(student.id);
   
   // Filter scores based on selected assessment
+  // Filter scores based on selected assessment AND Academic Year
   const scores = useMemo(() => {
-     if (selectedAssessmentId === 'all') return allScores;
+     let filtered = allScores;
+     
+     // Filter by Academic Year
+     // Ensure safe comparison (integers)
+     if (activeYear) {
+        filtered = filtered.filter((s:any) => s.academic_year === activeYear);
+     }
+
+     if (selectedAssessmentId === 'all') return filtered;
      if (!effectiveAssessmentId) return [];
-     return allScores.filter((s:any) => s.assessment_id === effectiveAssessmentId);
-  }, [allScores, effectiveAssessmentId, selectedAssessmentId]);
+     
+     return filtered.filter((s:any) => s.assessment_id === effectiveAssessmentId);
+  }, [allScores, effectiveAssessmentId, selectedAssessmentId, activeYear]);
 
   const { data: classStudents = [] } = useClassScores(student.class_id);
   
@@ -325,8 +341,9 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
               รหัสนักเรียน: {student.id} {student.classes?.name && `• ห้อง: ${student.classes.name}`}
             </p>
           </div>
-          <div className="flex gap-4">
-            <div className="text-center">
+          <div className="flex flex-col items-end gap-2">
+
+            <div className="text-right">
               <p className="text-3xl font-bold">{metrics.percentage.toFixed(0)}%</p>
               <p className="text-xs text-primary-foreground/70">คะแนนรวม ({studentPrograms.find((p: any) => p.program_id === selectedProgramId)?.program_name || "All"})</p>
             </div>
@@ -334,74 +351,70 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
           </div>
         </div>
       </motion.div>
+      {/* Filters Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-card p-4 rounded-2xl border shadow-sm space-y-4"
+      >
+        <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center justify-between">
+           <div className="flex flex-col sm:flex-row gap-4 w-full">
+               {/* Year Selector */}
+               <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      ปีการศึกษา
+                    </label>
+                    <YearSelector 
+                        value={selectedYear} 
+                        onValueChange={setSelectedYear}
+                        className="w-full sm:w-[250px]"
+                    />
+               </div>
 
-      {/* Program Filter Bar - Only show if student has multiple programs */}
-      {studentPrograms.length > 0 && (
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex items-center gap-3 bg-card p-4 rounded-2xl border shadow-sm"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-            <Layout className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">
-                  เลือกหลักสูตร / โปรแกรม
-                </p>
-                <Select value={selectedProgramId} onValueChange={setSelectedProgramId}>
-                  <SelectTrigger className="w-full sm:w-[300px] border-none shadow-none p-0 h-auto font-semibold text-lg hover:text-primary transition-colors focus:ring-0">
-                    <SelectValue placeholder="เลือกโปรแกรม" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {studentPrograms.map((p: any) => (
-                      <SelectItem key={p.program_id} value={p.program_id}>
-                        {p.program_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="hidden sm:block px-3 py-1 rounded-full bg-primary/5 text-primary text-xs font-medium">
-                คุณมีทั้งหมด {studentPrograms.length} โปรแกรม
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
+               {/* Program Selector */}
+               {studentPrograms.length > 0 && (
+                   <div className="flex flex-col gap-1.5 w-full sm:w-auto flex-1">
+                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                          หลักสูตร / โปรแกรม
+                        </label>
+                        <Select value={selectedProgramId} onValueChange={setSelectedProgramId}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="เลือกโปรแกรม" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {studentPrograms.map((p: any) => (
+                              <SelectItem key={p.program_id} value={p.program_id}>
+                                {p.program_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                   </div>
+               )}
 
-
-
-      {/* Assessment Selector & Score Trend */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-             <h3 className="text-lg font-semibold">ภาพรวมคะแนน</h3>
-             <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">การสอบ:</span>
-                <Select value={selectedAssessmentId} onValueChange={setSelectedAssessmentId}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="เลือกการสอบ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="latest">ล่าสุด (Latest)</SelectItem>
-                    {assessments.map((a: any) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-             </div>
+               {/* Assessment Selector */}
+               <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      การสอบ
+                    </label>
+                    <Select value={selectedAssessmentId} onValueChange={setSelectedAssessmentId}>
+                      <SelectTrigger className="w-full sm:w-[200px]">
+                        <SelectValue placeholder="เลือกการสอบ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="latest">ล่าสุด (Latest)</SelectItem>
+                         {assessments.map((a: any) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+               </div>
+           </div>
         </div>
-
-        {/* Trend Dashboard */}
-        {selectedProgramId && (
-            <ScoreTrendDashboard programId={selectedProgramId} />
-        )}
-      </div>
+      </motion.div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="คะแนนรวม"
@@ -418,6 +431,22 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
           variant="default"
         />
       </div>
+      {/* Trend Dashboard */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+             <TrendingUp className="h-5 w-5 text-primary" />
+             <h3 className="text-lg font-semibold">ภาพรวมคะแนน (Score Trends)</h3>
+        </div>
+        {selectedProgramId && (
+            <ScoreTrendDashboard 
+              programId={selectedProgramId} 
+              studentId={student.id}
+            />
+        )}
+      </div>
+
+
+
 
       {/* Charts & Analysis */}
       <div className="grid gap-6 lg:grid-cols-2">

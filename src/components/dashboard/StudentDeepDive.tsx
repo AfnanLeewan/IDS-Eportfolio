@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ScoreTrendDashboard } from "./ScoreTrendDashboard";
 import { SubTopicScoreChart } from "./SubTopicScoreChart";
 import { calculateSubjectScore, getStudentTotalScore } from "@/lib/score-utils";
 
@@ -40,9 +41,10 @@ interface StudentDeepDiveProps {
   classStudents: Student[];
   subjects?: any[];
   classes?: any[];
+  programId?: string;
 }
 
-export function StudentDeepDive({ student, classStudents, subjects = [], classes = [] }: StudentDeepDiveProps) {
+export function StudentDeepDive({ student, classStudents, subjects = [], classes = [], programId }: StudentDeepDiveProps) {
   const [selectedSubjectId, setSelectedSubjectId] = useState(subjects[0]?.id || "");
   
   // Calculate student's total score
@@ -203,6 +205,17 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Personal Score Trend */}
+      {programId && (
+        <motion.div
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.05 }}
+        >
+           <ScoreTrendDashboard programId={programId} studentId={student.id} />
+        </motion.div>
+      )}
 
       {/* Skill Profile Chart */}
       <motion.div

@@ -27,7 +27,11 @@ interface UserCSVRow {
   student_id?: string; // Optional student ID (e.g. school ID)
 }
 
-export function UserCSVUpload() {
+interface UserCSVUploadProps {
+  onSuccess?: () => void;
+}
+
+export function UserCSVUpload({ onSuccess }: UserCSVUploadProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -175,9 +179,11 @@ export function UserCSVUpload() {
     setProgress(100);
     setIsProcessing(false);
     toast({
-        title: "Batch Process Complete",
         description: `Successfully processed ${successCount} of ${parsedData.length} users.`,
     });
+    if (successCount > 0) {
+      onSuccess?.();
+    }
   };
 
   const downloadTemplate = () => {
@@ -258,7 +264,7 @@ export function UserCSVUpload() {
                             </div>
                         </div>
                         <Button variant="ghost" size="icon" onClick={reset} disabled={isProcessing}>
-                            <X className="h-4 w-4" /> // Check if X icon is imported
+                            <X className="h-4 w-4" />
                         </Button>
                     </div>
 

@@ -295,26 +295,7 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
     );
   }
 
-  // Show message if no subjects found
-  if (!subjectsFromDB || subjectsFromDB.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Card className="p-6 max-w-md text-center">
-          <CardHeader>
-            <CardTitle>No Subjects Found</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              No subjects have been added yet. Please add subjects in the Management page first.
-            </p>
-            <Button onClick={() => window.location.href = '/management'}>
-              Go to Management
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+
 
   const toggleSubject = (subjectId: string) => {
     setExpandedSubjects(prev => 
@@ -522,9 +503,6 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
                 </SelectContent>
               </Select>
               {programsLoading && <span className="text-sm text-muted-foreground">กำลังโหลด...</span>}
-            </div>
-
-            {/* Assessment Selector - NEW! */}
             <div className="flex items-center gap-3">
                <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
                 การสอบ:
@@ -540,10 +518,29 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
                       {a.title}
                     </SelectItem>
                   ))}
-                  <SelectItem value="all">ทั้งหมด (All Scores)</SelectItem>
+                  {/* <SelectItem value="all">ทั้งหมด (All Scores)</SelectItem> */}
                 </SelectContent>
-              </Select>
+                </Select>
+
+              </div>
+                                          <div className="flex items-center gap-3">
+                              
+                               <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                ปีการศึกษา:
+              </label>
+                <YearSelector 
+                  value={selectedYear} 
+                  onValueChange={setSelectedYear}
+                  className="w-[250px]"
+                />
+                
+                
+                </div>
+
             </div>
+
+            {/* Assessment Selector - NEW! */}
+            
             
             {/* Search and Filters */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -584,11 +581,7 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
                     ))}
                   </SelectContent>
                 </Select>
-                <YearSelector 
-                  value={selectedYear} 
-                  onValueChange={setSelectedYear}
-                  className="w-[200px]"
-                />
+
               </div>
             </div>
           </div>

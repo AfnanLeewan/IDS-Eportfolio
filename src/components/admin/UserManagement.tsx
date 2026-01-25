@@ -268,7 +268,7 @@ const UserManagement = () => {
               </div>
             </div>
             <div className="flex gap-2">
-              <UserCSVUpload />
+              <UserCSVUpload onSuccess={fetchUsers} />
               <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="gap-2">

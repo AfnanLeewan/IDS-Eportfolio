@@ -659,6 +659,7 @@ export function AnalyticsDashboard({
                   classStudents={filteredStudents}
                   subjects={subjectsFromDB}
                   classes={classesFromDB}
+                  programId={selectedProgramId}
                 />
               </>
             ) : (
