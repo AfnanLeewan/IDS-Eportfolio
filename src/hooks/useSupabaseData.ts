@@ -33,6 +33,7 @@ export const queryKeys = {
   programStudents: (programId: string) => ['program_students', programId] as const,
   yearPrograms: (yearId: string) => ['year_programs', yearId] as const,
   yearClasses: (yearId: string) => ['year_classes', yearId] as const,
+  assessments: (programId: string) => ['assessments', programId] as const,
 };
 
 // ============ EXAM PROGRAMS ============
@@ -70,7 +71,7 @@ export function useSubjects(programId?: string) {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as any[];
     },
   });
 }
@@ -92,7 +93,7 @@ export function useSubTopics(subjectId?: string) {
       
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as any[];
     },
   });
 }
@@ -141,6 +142,62 @@ export function useAvailableSubjects(classId: string, programId: string = 'pre-a
       return []; // No longer assigning subjects manually
     },
     enabled: false, // Disabled - subjects auto-assigned via programs
+  });
+}
+
+// ============ ASSESSMENTS ============
+
+export function useAssessments(programId?: string) {
+  return useQuery({
+    queryKey: ['assessments', programId],
+    queryFn: async () => {
+      let query = supabase
+        .from('assessments')
+        .select('*')
+        .order('date', { ascending: false }); // Latest first
+
+      if (programId) {
+        query = query.eq('program_id', programId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!programId,
+  });
+}
+
+export function useCreateAssessment() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (newAssessment: {
+      program_id: string;
+      title: string;
+      date: string;
+    }) => {
+      const { data, error } = await (supabase as any)
+        .from('assessments')
+        .insert({
+          program_id: newAssessment.program_id,
+          title: newAssessment.title,
+          date: newAssessment.date,
+          type: 'exam' // Default type
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['assessments', variables.program_id] });
+      toast.success('Created assessment successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(`Error creating assessment: ${error.message}`);
+    },
   });
 }
 
@@ -282,7 +339,7 @@ export function useStudentScores(studentId: string) {
             )
           )
         `)
-        .eq('student_id', studentId);
+        .eq('student_id', studentId); // We filter by assessment_id in UI for now, or update this query later
       
       if (error) throw error;
       return data;
@@ -308,6 +365,7 @@ export function useClassScores(classId: string = 'all') {
             sub_topic_id,
             score,
             exam_date,
+            assessment_id,
             updated_at
           )
         `)
@@ -342,12 +400,14 @@ export function useUpdateStudentScore() {
       studentId, 
       subTopicId, 
       score, 
-      academicYear 
+      academicYear,
+      assessmentId
     }: { 
       studentId: string; 
       subTopicId: string; 
       score: number;
       academicYear: number;
+      assessmentId?: string;
     }) => {
       // Input validation
       if (!studentId || !subTopicId) {
@@ -364,9 +424,10 @@ export function useUpdateStudentScore() {
           sub_topic_id: subTopicId,
           score,
           academic_year: academicYear,
+          assessment_id: assessmentId,
           updated_at: new Date().toISOString(),
           updated_by: user?.id
-        }, { onConflict: 'student_id, sub_topic_id' })
+        } as any, { onConflict: 'student_id, sub_topic_id, assessment_id' })
         .select()
         .single();
 
@@ -437,23 +498,26 @@ export function useUpdateStudentScores() {
     mutationFn: async ({ 
       studentId, 
       scores,
-      academicYear 
+      academicYear,
+      assessmentId
     }: { 
       studentId: string; 
       scores: { subTopicId: string; score: number }[];
       academicYear: number;
+      assessmentId?: string;
     }) => {
       const records = scores.map(s => ({
         student_id: studentId,
         sub_topic_id: s.subTopicId,
         score: s.score,
         academic_year: academicYear,
+        assessment_id: assessmentId,
         updated_at: new Date().toISOString()
       }));
 
       const { data, error } = await supabase
         .from('student_scores')
-        .upsert(records, { onConflict: 'student_id, sub_topic_id' })
+        .upsert(records as any, { onConflict: 'student_id, sub_topic_id, assessment_id' })
         .select();
 
       if (error) throw error;
@@ -1866,11 +1930,17 @@ export function useUpsertStudentScores() {
   const { user } = useAuth();
   
   return useMutation({
-    mutationFn: async ({ scores }: { scores: any[] }) => {
+    mutationFn: async ({ scores, assessmentId }: { scores: any[]; assessmentId?: string }) => {
       if (!user?.id) throw new Error("User not authenticated");
       
+      // Inject assessment_id into scores
+      const scoresWithAssessment = scores.map(s => ({
+        ...s,
+        assessment_id: assessmentId
+      }));
+
       const { error } = await supabase.rpc('upsert_student_scores', {
-        p_scores: scores,
+        p_scores: scoresWithAssessment,
         p_updated_by: user.id
       });
       

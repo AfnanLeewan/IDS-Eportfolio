@@ -51,7 +51,8 @@ import {
   useDeleteStudentSubjectScores,
   useCreateStudent,
   useAcademicYears,
-  useTeacherAssignments
+  useTeacherAssignments,
+  useAssessments
 } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { YearSelector } from '@/components/common/YearSelector';
@@ -137,10 +138,13 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
   }, [programs, selectedProgramId]);
   
   // Database hooks for subjects and classes
+  const { data: assessmentsData = [] } = useAssessments(selectedProgramId);
+  const assessments = assessmentsData as any[];
   const { data: subjectsFromDB = [], isLoading: subjectsLoading, error: subjectsError } = useSubjectWithTopics(selectedProgramId || 'none');
   const { data: classesFromDB = [], isLoading: classesLoading } = useYearClasses(activeYearId);
   
   // UI state
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>("latest");
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -156,7 +160,17 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
         id: dbStudent.id,
         name: dbStudent.name,
         classId: dbStudent.class_id,
-        scores: dbStudent.student_scores?.map((score: any) => ({
+        scores: dbStudent.student_scores?.filter((score: any) => {
+          // Filter by assessment
+          if (selectedAssessmentId === 'latest') {
+            // Find latest assessment from the list
+            if (!assessments || assessments.length === 0) return true; // Show all if no assessments
+            const latest = assessments[0]; // Ordered by desc
+            return score.assessment_id === latest.id;
+          }
+          if (selectedAssessmentId === 'all') return true;
+          return score.assessment_id === selectedAssessmentId;
+        }).map((score: any) => ({
           subTopicId: score.sub_topic_id,
           score: score.score,
           // We might need to add maxScore here if the component needs it, 
@@ -167,6 +181,15 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
     return []; // Return empty if no data yet (or fall back to initialStudents if testing)
   }, [studentsWithScoresFromDB]);
   
+  // Calculate effective assessment ID for mutations
+  const effectiveAssessmentId = useMemo(() => {
+    if (selectedAssessmentId === 'latest') {
+      return assessments.length > 0 ? assessments[0].id : undefined;
+    }
+    if (selectedAssessmentId === 'all') return undefined; 
+    return selectedAssessmentId;
+  }, [selectedAssessmentId, assessments]);
+
   // CRUD state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -346,7 +369,8 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
       const result = await updateScoresMutation.mutateAsync({
         studentId,
         scores: newScores,
-        academicYear: activeYear
+        academicYear: activeYear,
+        assessmentId: effectiveAssessmentId
       });
       
       // VALIDATE result
@@ -394,7 +418,8 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
         studentId,
         subTopicId,
         score: newScore,
-        academicYear: activeYear
+        academicYear: activeYear,
+        assessmentId: effectiveAssessmentId
       });
       
       // Success feedback handled by mutation/toast
@@ -484,6 +509,27 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
                 </SelectContent>
               </Select>
               {programsLoading && <span className="text-sm text-muted-foreground">กำลังโหลด...</span>}
+            </div>
+
+            {/* Assessment Selector - NEW! */}
+            <div className="flex items-center gap-3">
+               <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                การสอบ:
+              </label>
+              <Select value={selectedAssessmentId} onValueChange={setSelectedAssessmentId}>
+                <SelectTrigger className="w-[220px] rounded-xl">
+                  <SelectValue placeholder="เลือกการสอบ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="latest">ล่าสุด (Latest)</SelectItem>
+                  {assessments.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.title}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="all">ทั้งหมด (All Scores)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             {/* Search and Filters */}

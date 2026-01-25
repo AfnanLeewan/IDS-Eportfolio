@@ -17,7 +17,8 @@ import {
   useUpsertStudentScores,
   useSubTopics,
   useYearPrograms,
-  useTeacherAssignments
+  useTeacherAssignments,
+  useAssessments
 } from "@/hooks/useSupabaseData";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -40,6 +41,7 @@ export function ScoreUploadDialog({
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedProgramId, setSelectedProgramId] = useState(initialProgramId || "");
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState(initialSubjectId || "");
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<any[]>([]);
@@ -57,7 +59,10 @@ export function ScoreUploadDialog({
   const isAdmin = role === 'admin';
   
   const { data: programs = [] } = useYearPrograms(activeYearId || "");
-  const { data: allSubjects = [] } = useSubjects(selectedProgramId);
+  const { data: assessmentsData = [] } = useAssessments(selectedProgramId);
+  const assessments = assessmentsData as any[];
+  const { data: allSubjectsData = [] } = useSubjects(selectedProgramId);
+  const allSubjects = allSubjectsData as any[];
   const { data: assignments = [] } = useTeacherAssignments(isTeacher ? user?.id : undefined);
 
   // Filter subjects for teachers
@@ -70,7 +75,8 @@ export function ScoreUploadDialog({
     return allSubjects;
   }, [allSubjects, isTeacher, isAdmin, assignments]);
 
-  const { data: subTopics = [] } = useSubTopics(selectedSubjectId);
+  const { data: subTopicsData = [] } = useSubTopics(selectedSubjectId);
+  const subTopics = subTopicsData as any[];
   
   // We need students to generate template
   // Assuming useStudents returns all active students. We might want to filter by class in template generation but let's dump all for now.
@@ -257,7 +263,10 @@ export function ScoreUploadDialog({
 
       // 3. Upsert Scores
       if (scoresToUpsert.length > 0) {
-        await upsertScores.mutateAsync({ scores: scoresToUpsert });
+        await upsertScores.mutateAsync({ 
+          scores: scoresToUpsert, 
+          assessmentId: selectedAssessmentId || undefined 
+        });
       } else {
         toast({ title: "Warning", description: "No valid scores found to upload", variant: "default" });
       }
@@ -297,6 +306,19 @@ export function ScoreUploadDialog({
                   <SelectContent>
                     {programs.map((p: any) => (
                       <SelectItem key={p.program_id} value={p.program_id}>{p.program_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Assessment</Label>
+                <Select value={selectedAssessmentId} onValueChange={setSelectedAssessmentId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Assessment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assessments.map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>{a.title}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -399,7 +421,7 @@ export function ScoreUploadDialog({
 
         <DialogFooter>
           {step === 1 ? (
-            <Button onClick={handleParse} disabled={!file || !selectedSubjectId}>
+            <Button onClick={handleParse} disabled={!file || !selectedSubjectId || !selectedAssessmentId}>
               Next: Review
             </Button>
           ) : (

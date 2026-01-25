@@ -39,6 +39,38 @@ export interface Database {
           updated_at?: string
         }
       }
+      assessments: {
+        Row: {
+          id: string
+          title: string
+          type: string | null
+          date: string | null
+          academic_year_id: string | null
+          program_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          type?: string | null
+          date?: string | null
+          academic_year_id?: string | null
+          program_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          type?: string | null
+          date?: string | null
+          academic_year_id?: string | null
+          program_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       subjects: {
         Row: {
           id: string
@@ -177,6 +209,7 @@ export interface Database {
           sub_topic_id: string
           score: number
           exam_date: string | null
+          assessment_id: string | null
           created_at: string
           updated_at: string
           created_by: string | null
@@ -189,6 +222,7 @@ export interface Database {
           sub_topic_id: string
           score: number
           exam_date?: string | null
+          assessment_id?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null
@@ -201,6 +235,7 @@ export interface Database {
           sub_topic_id?: string
           score?: number
           exam_date?: string | null
+          assessment_id?: string | null
           created_at?: string
           updated_at?: string
           created_by?: string | null

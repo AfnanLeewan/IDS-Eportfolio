@@ -37,6 +37,7 @@ import { SubTopicGapChart } from "./SubTopicGapChart";
 import { SubTopicScoreChart } from "./SubTopicScoreChart";
 import { StudentDeepDive } from "./StudentDeepDive";
 import { SubTopicComparisonChart } from "@/components/scores/SubTopicComparisonChart";
+import { ScoreTrendDashboard } from "./ScoreTrendDashboard";
 import { YearSelector } from "@/components/common/YearSelector";
 import { 
   useCurrentAcademicYear, 
@@ -456,6 +457,11 @@ export function AnalyticsDashboard({
                 subjects={subjectsFromDB}
               />
             </div>
+
+            {/* Score Trend Dashboard */}
+            {selectedProgramId && (
+              <ScoreTrendDashboard programId={selectedProgramId} />
+            )}
 
             {/* Sub-topic Score Chart (when subject is selected) */}
             {selectedSubjectData && (

@@ -27,6 +27,9 @@ interface ProgramFormData {
   description: string;
 }
 
+import { AssessmentManagement } from './AssessmentManagement';
+import { FileText } from 'lucide-react';
+
 export function ProgramManagement() {
   const { data: currentYear } = useCurrentAcademicYear();
   const { data: programs, isLoading } = useYearPrograms(currentYear?.id || '');
@@ -35,6 +38,7 @@ export function ProgramManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isManageClassesDialogOpen, setIsManageClassesDialogOpen] = useState(false);
+  const [isManageAssessmentsDialogOpen, setIsManageAssessmentsDialogOpen] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<any>(null);
   
   const [formData, setFormData] = useState<ProgramFormData>({
@@ -133,6 +137,11 @@ export function ProgramManagement() {
     setIsManageClassesDialogOpen(true);
   };
 
+  const openManageAssessmentsDialog = (program: any) => {
+    setSelectedProgram(program);
+    setIsManageAssessmentsDialogOpen(true);
+  };
+
   if (!currentYear) {
     return (
       <Card>
@@ -202,6 +211,15 @@ export function ProgramManagement() {
                     >
                       <Users className="mr-2 h-4 w-4" />
                       จัดการชั้นเรียน
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => openManageAssessmentsDialog(program)}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      การสอบ
                     </Button>
                     <Button
                       variant="outline"
@@ -384,6 +402,31 @@ export function ProgramManagement() {
 
           <DialogFooter>
             <Button onClick={() => setIsManageClassesDialogOpen(false)}>
+              ปิด
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Assessments Dialog */}
+      <Dialog open={isManageAssessmentsDialogOpen} onOpenChange={setIsManageAssessmentsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>จัดการการสอบ</DialogTitle>
+            <DialogDescription>
+              {selectedProgram?.program_name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedProgram && (
+            <AssessmentManagement 
+              programId={selectedProgram.program_id} 
+              programName={selectedProgram.program_name} 
+            />
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsManageAssessmentsDialogOpen(false)}>
               ปิด
             </Button>
           </DialogFooter>
