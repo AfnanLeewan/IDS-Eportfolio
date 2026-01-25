@@ -17,13 +17,15 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { 
-  useStudentScores, 
-  useSubjectWithTopics, 
   useClassScores,
   useNotifications,
   useMarkNotificationRead,
-  useClassPrograms
+  useClassPrograms,
+  useAssessments,
+  useStudentScores,
+  useSubjectWithTopics
 } from "@/hooks/useSupabaseData";
+import { ScoreTrendDashboard } from "./ScoreTrendDashboard";
 
 interface StudentDashboardProps {
   student: any; // Database student object
@@ -59,8 +61,27 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
     }
   }, [studentPrograms, selectedProgramId]);
 
+  // Assessment Selection
+  const { data: assessments = [] } = useAssessments(selectedProgramId);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>("latest");
+
+  const effectiveAssessmentId = useMemo(() => {
+    if (selectedAssessmentId === 'latest') {
+        return assessments.length > 0 ? assessments[0].id : null;
+    }
+    return selectedAssessmentId;
+  }, [selectedAssessmentId, assessments]);
+
   const { data: rawSubjects = [], isLoading: isSubjectsLoading } = useSubjectWithTopics(selectedProgramId || undefined);
-  const { data: scores = [] } = useStudentScores(student.id);
+  const { data: allScores = [] } = useStudentScores(student.id);
+  
+  // Filter scores based on selected assessment
+  const scores = useMemo(() => {
+     if (selectedAssessmentId === 'all') return allScores;
+     if (!effectiveAssessmentId) return [];
+     return allScores.filter((s:any) => s.assessment_id === effectiveAssessmentId);
+  }, [allScores, effectiveAssessmentId, selectedAssessmentId]);
+
   const { data: classStudents = [] } = useClassScores(student.class_id);
   
   // Notifications
@@ -130,8 +151,15 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
            let studentSum = 0;
            if (!cs.student_scores) return 0;
            
+           // Also filter class student scores for accurate comparison
+           const studentScoresFiltered = selectedAssessmentId === 'all' 
+                ? cs.student_scores 
+                : effectiveAssessmentId 
+                    ? cs.student_scores.filter((s:any) => s.assessment_id === effectiveAssessmentId)
+                    : [];
+
            subj.subTopics.forEach((st: any) => {
-             const sc = cs.student_scores.find((ss: any) => ss.sub_topic_id === st.id)?.score || 0;
+             const sc = studentScoresFiltered.find((ss: any) => ss.sub_topic_id === st.id)?.score || 0;
              studentSum += sc;
            });
            return studentSum;
@@ -345,7 +373,35 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
         </motion.div>
       )}
 
-      {/* Stats Grid */}
+
+
+      {/* Assessment Selector & Score Trend */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+             <h3 className="text-lg font-semibold">ภาพรวมคะแนน</h3>
+             <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">การสอบ:</span>
+                <Select value={selectedAssessmentId} onValueChange={setSelectedAssessmentId}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="เลือกการสอบ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="latest">ล่าสุด (Latest)</SelectItem>
+                    {assessments.map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+             </div>
+        </div>
+
+        {/* Trend Dashboard */}
+        {selectedProgramId && (
+            <ScoreTrendDashboard programId={selectedProgramId} />
+        )}
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="คะแนนรวม"

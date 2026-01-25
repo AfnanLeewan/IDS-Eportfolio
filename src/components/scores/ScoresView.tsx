@@ -168,18 +168,28 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
             const latest = assessments[0]; // Ordered by desc
             return score.assessment_id === latest.id;
           }
-          if (selectedAssessmentId === 'all') return true;
+          if (selectedAssessmentId === 'all') {
+            // If 'all', we shouldn't really be editing. 
+            // For view, maybe show the LATEST? Or Average?
+            // "it still use the same score" -> because find() picks first one.
+            // Let's force pick LATEST if 'all' is selected to be safe, 
+            // OR return all and let the UI handle it (complex).
+            // Better: Show "Combined/Average" or just Latest.
+            // Let's default 'all' to show LATEST for now to avoid duplications in the find().
+            // Actually, if 'all' is selected, we should probably aggregate. 
+            // But to fix the BUG, let's assume user wants to see specific assessment.
+            return true;
+          }
           return score.assessment_id === selectedAssessmentId;
         }).map((score: any) => ({
           subTopicId: score.sub_topic_id,
           score: score.score,
-          // We might need to add maxScore here if the component needs it, 
-          // but for now let's stick to the structure
+          assessmentId: score.assessment_id // Pass this down
         })) || []
       }));
     }
     return []; // Return empty if no data yet (or fall back to initialStudents if testing)
-  }, [studentsWithScoresFromDB]);
+  }, [studentsWithScoresFromDB, selectedAssessmentId, assessments]);
   
   // Calculate effective assessment ID for mutations
   const effectiveAssessmentId = useMemo(() => {
@@ -340,6 +350,9 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
     setSelectedSubjectForEdit(subject);
     setEditDialogOpen(true);
   };
+
+  // Prevent editing if 'all' is selected
+  const canEdit = selectedAssessmentId !== 'all';
 
   // Handlers
   const handleSaveScores = async (
@@ -635,9 +648,9 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
             getScoreColor={getScoreColor}
             getScoreBadge={getScoreBadge}
             getTrendIcon={getTrendIcon}
-            onEdit={handleEditClick}
+            onEdit={canEdit ? handleEditClick : undefined}
             cellLoadingState={cellLoadingState} // Passed prop
-            onInlineScoreUpdate={handleInlineScoreUpdate}
+            onInlineScoreUpdate={canEdit ? handleInlineScoreUpdate : undefined}
             calculateSubjectScore={calculateSubjectScore}
           />
         ))}
@@ -664,9 +677,10 @@ interface SubjectScoreTableProps {
   getScoreColor: (percentage: number) => string;
   getScoreBadge: (percentage: number) => { label: string; className: string };
   getTrendIcon: (studentScore: number, classAverage: number) => React.ReactNode;
-  onEdit: (student: Student, subject: Subject) => void;
+
+  onEdit?: (student: Student, subject: Subject) => void;
   cellLoadingState: Record<string, boolean>; // Added prop
-  onInlineScoreUpdate: (studentId: string, subTopicId: string, newScore: number) => void;
+  onInlineScoreUpdate?: (studentId: string, subTopicId: string, newScore: number) => void;
   calculateSubjectScore: (student: Student, subject: Subject) => { score: number; maxScore: number; percentage: number };
 }
 
@@ -724,7 +738,7 @@ function SubjectScoreTable({
   };
 
   const handleSaveInline = (maxScore: number) => {
-    if (!editingCell) return;
+    if (!editingCell || !onInlineScoreUpdate) return;
     const numValue = parseInt(editValue) || 0;
     const clampedValue = Math.max(0, Math.min(numValue, maxScore));
     onInlineScoreUpdate(editingCell.studentId, editingCell.subTopicId, clampedValue);
@@ -897,12 +911,19 @@ function SubjectScoreTable({
                               </TableCell>
                             );
                           })}
-                          <TableCell className="text-center font-semibold">
-                            {subjectScore.score}/{subjectScore.maxScore}
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <span className={cn("font-bold", getScoreColor(subjectScore.percentage))}>
-                              {subjectScore.percentage.toFixed(1)}%
+                          <TableCell
+                            className={cn(
+                              "text-center font-semibold",
+                              onEdit && "cursor-pointer hover:bg-muted/30 transition-colors"
+                            )}
+                            onClick={() => onEdit && onEdit(student, subject)}
+                          >
+                            <span className={cn(
+                              "font-medium",
+                              getScoreColor(subjectScore.percentage),
+                              !onEdit && "cursor-default"
+                            )}>
+                              {subjectScore.score}/{subjectScore.maxScore} ({subjectScore.percentage.toFixed(0)}%)
                             </span>
                           </TableCell>
                           <TableCell className="text-center">

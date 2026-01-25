@@ -154,7 +154,8 @@ export function useAssessments(programId?: string) {
       let query = supabase
         .from('assessments')
         .select('*')
-        .order('date', { ascending: false }); // Latest first
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false }); // Latest first
 
       if (programId) {
         query = query.eq('program_id', programId);

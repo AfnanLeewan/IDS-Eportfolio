@@ -127,7 +127,7 @@ export function ScoreTrendDashboard({ programId }: ScoreTrendDashboardProps) {
         min: count > 0 ? parseFloat(minP.toFixed(1)) : 0,
         count
       };
-    });
+    }).reverse(); // Reverse to show Oldest -> Newest (Left -> Right)
   }, [assessments, studentScores, selectedSubjectId, selectedSubTopicId, subTopics]);
 
   return (

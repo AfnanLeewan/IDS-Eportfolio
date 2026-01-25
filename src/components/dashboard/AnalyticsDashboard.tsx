@@ -45,7 +45,8 @@ import {
   useYearClasses, 
   useSubjectWithTopics, 
   useClassScores,
-  useAcademicYears
+  useAcademicYears,
+  useAssessments
 } from "@/hooks/useSupabaseData";
 
 interface AnalyticsDashboardProps {
@@ -86,6 +87,10 @@ export function AnalyticsDashboard({
     }
   }, [programs, selectedProgramId]);
 
+  // Assessment selection
+  const { data: assessments = [] } = useAssessments(selectedProgramId);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string>("latest");
+
   // Data Loading
   const { data: rawSubjects = [] } = useSubjectWithTopics(selectedProgramId || 'none');
   const { data: classesFromDB = [] } = useYearClasses(activeYearId);
@@ -116,19 +121,39 @@ export function AnalyticsDashboard({
   // or trust that students are from current year's active classes.
   const { data: studentsWithScoresFromDB = [] } = useClassScores(selectedClass);
 
-  // Map to component format
+  // Determine effective assessment ID for filtering
+  const effectiveAssessmentId = useMemo(() => {
+    if (selectedAssessmentId === 'latest') {
+        return assessments.length > 0 ? assessments[0].id : null;
+    }
+    return selectedAssessmentId;
+  }, [selectedAssessmentId, assessments]);
+
+  // Map to component format WITH FILTERING
   const allStudents = useMemo(() => {
     if (!studentsWithScoresFromDB) return [];
-    return studentsWithScoresFromDB.map((dbStudent: any) => ({
-      id: dbStudent.id,
-      name: dbStudent.name,
-      classId: dbStudent.class_id,
-      scores: dbStudent.student_scores?.map((score: any) => ({
-        subTopicId: score.sub_topic_id,
-        score: score.score,
-      })) || []
-    }));
-  }, [studentsWithScoresFromDB]);
+    return studentsWithScoresFromDB.map((dbStudent: any) => {
+        // Filter scores by assessment
+        const filteredScores = dbStudent.student_scores?.filter((score: any) => {
+             if (selectedAssessmentId === 'all') return true; // Show all (usually implies average, but raw data needs specific handling)
+             // If specific assessment or latest
+             if (effectiveAssessmentId) {
+                 return score.assessment_id === effectiveAssessmentId;
+             }
+             return false;
+        }) || [];
+
+        return {
+          id: dbStudent.id,
+          name: dbStudent.name,
+          classId: dbStudent.class_id,
+          scores: filteredScores.map((score: any) => ({
+            subTopicId: score.sub_topic_id,
+            score: score.score,
+          }))
+      };
+    });
+  }, [studentsWithScoresFromDB, effectiveAssessmentId, selectedAssessmentId]);
 
   // Filter students based on current program's classes
   const filteredStudents = useMemo(() => {
@@ -272,6 +297,23 @@ export function AnalyticsDashboard({
                     {programs.map((program: any) => (
                       <SelectItem key={program.program_id} value={program.program_id}>
                         {program.program_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">การสอบ</label>
+                <Select value={selectedAssessmentId} onValueChange={setSelectedAssessmentId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="เลือกการสอบ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="latest">ล่าสุด (Latest)</SelectItem>
+                    {assessments.map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.title}
                       </SelectItem>
                     ))}
                   </SelectContent>
