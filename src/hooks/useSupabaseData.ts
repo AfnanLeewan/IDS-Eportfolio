@@ -737,6 +737,29 @@ export function useDeleteStudent() {
   });
 }
 
+// Bulk delete students
+export function useDeleteStudents() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (studentIds: string[]) => {
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .in('id', studentIds);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.students });
+      toast.success('ลบนักเรียนที่เลือกสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
 // Update single score
 export function useUpdateScore() {
   const queryClient = useQueryClient();

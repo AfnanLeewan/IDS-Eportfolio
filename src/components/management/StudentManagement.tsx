@@ -13,6 +13,16 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -37,7 +47,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useClasses, useStudents, useCreateStudent, useUpdateStudent, useDeleteStudent } from "@/hooks/useSupabaseData";
+import { useClasses, useStudents, useCreateStudent, useUpdateStudent, useDeleteStudent, useDeleteStudents } from "@/hooks/useSupabaseData";
 import { generateStudentId } from "@/lib/dataUtils";
 import { Loader2 } from "lucide-react";
 
@@ -54,6 +64,7 @@ export function StudentManagement() {
   const createStudent = useCreateStudent();
   const updateStudent = useUpdateStudent();
   const deleteStudent = useDeleteStudent();
+  const deleteStudents = useDeleteStudents();
   
   const [activeTab, setActiveTab] = useState("all");
   const [selectedClass, setSelectedClass] = useState<string>("all");
@@ -66,6 +77,7 @@ export function StudentManagement() {
   // Dialog States
   const [isBulkAssignOpen, setIsBulkAssignOpen] = useState(false);
   const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   
   // Data State
   const [authorizedUsers, setAuthorizedUsers] = useState<AuthorizedUser[]>([]);
@@ -271,8 +283,23 @@ export function StudentManagement() {
     }
   };
 
+  const handleBulkDelete = async () => {
+     if (selectedStudentIds.length === 0) return;
+     setIsProcessing(true);
+     try {
+        await deleteStudents.mutateAsync(selectedStudentIds);
+        setSelectedStudentIds([]); // Clear selection upon success
+        setIsBulkDeleteOpen(false);
+     } catch (error) {
+        // Error handling is inside deleteStudents onError but we catch here to stop spinner
+        console.error(error);
+     } finally {
+        setIsProcessing(false);
+     }
+  };
+
   const handleDelete = (studentId: string) => {
-    if (confirm("Are you sure you want to delete this student record?")) {
+    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบระเบียนนักเรียนนี้")) {
       deleteStudent.mutate(studentId);
     }
   };
@@ -289,9 +316,9 @@ export function StudentManagement() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <div>
-          <h3 className="text-lg font-semibold">Student Management</h3>
+          <h3 className="text-lg font-semibold">จัดการรายชื่อนักเรียน</h3>
           <p className="text-sm text-muted-foreground">
-            Manage student records and class assignments
+            จัดการรายชื่อนักเรียนและการมอบหมายชั้นเรียน
           </p>
         </div>
       </div>
@@ -300,11 +327,11 @@ export function StudentManagement() {
         <TabsList className="bg-card shadow-card border-0 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
           <TabsTrigger value="all" className="gap-2">
             <Users className="h-4 w-4" />
-            All Students ({students.length})
+            รายชื่อนักเรียน ({students.length})
           </TabsTrigger>
           <TabsTrigger value="unassigned" className="gap-2">
             <UserPlus className="h-4 w-4" />
-            Unassigned Users {authorizedUsers.length > 0 && `(${authorizedUsers.length})`}
+            ผู้ใช้ที่ยังไม่ถูกกำหนด role {authorizedUsers.length > 0 && `(${authorizedUsers.length})`}
           </TabsTrigger>
         </TabsList>
 
@@ -328,7 +355,7 @@ export function StudentManagement() {
                       <SelectValue placeholder="Filter by class" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Classes</SelectItem>
+                      <SelectItem value="all">ทั้งหมด</SelectItem>
                       {classes.map((c) => (
                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                       ))}
@@ -337,20 +364,30 @@ export function StudentManagement() {
                 </div>
                 
                 {selectedStudentIds.length > 0 && (
-                  <Button 
-                    onClick={() => setIsBulkMoveOpen(true)}
-                    className="gap-2 gradient-primary text-primary-foreground shadow-glow"
-                  >
-                    <ArrowRight className="h-4 w-4" />
-                    Move Selected ({selectedStudentIds.length})
-                  </Button>
+                  <div className="flex gap-2">
+                     <Button 
+                        onClick={() => setIsBulkDeleteOpen(true)}
+                        variant="destructive"
+                        className="gap-2 shadow-glow"
+                     >
+                        <Trash2 className="h-4 w-4" />
+                        ลบ ({selectedStudentIds.length})
+                     </Button>
+                     <Button 
+                        onClick={() => setIsBulkMoveOpen(true)}
+                        className="gap-2 gradient-primary text-primary-foreground shadow-glow"
+                     >
+                        <ArrowRight className="h-4 w-4" />
+                        ย้าย ({selectedStudentIds.length})
+                     </Button>
+                  </div>
                 )}
               </div>
 
               {/* Students List */}
               <div className="space-y-2">
                 {filteredStudents.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No students found</p>
+                  <p className="text-center text-muted-foreground py-8">ไม่พบนักเรียน</p>
                 ) : (
                   <>
                     <div className="flex items-center p-3 border-b mb-2">
@@ -359,7 +396,7 @@ export function StudentManagement() {
                         onCheckedChange={handleSelectAllStudents}
                         className="mr-3"
                       />
-                      <span className="text-sm font-medium text-muted-foreground">Select All</span>
+                      <span className="text-sm font-medium text-muted-foreground">เลือกทั้งหมด</span>
                     </div>
                     {filteredStudents.map((student, index) => (
                       <motion.div
@@ -410,9 +447,9 @@ export function StudentManagement() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Unassigned Authenticated Users</CardTitle>
+                  <CardTitle>ผู้ใช้ที่ยังไม่ถูกมอบหมาย</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    Users with 'student' role who are not linked to any student record
+                    ผู้ใช้ที่มีบทบาท 'student' ที่ยังไม่ได้เชื่อมโยงกับระเบียนนักเรียน
                   </p>
                 </div>
                 {selectedUserIds.length > 0 && (
@@ -421,7 +458,7 @@ export function StudentManagement() {
                     className="gap-2 gradient-primary text-primary-foreground shadow-glow"
                   >
                     <LinkIcon className="h-4 w-4" />
-                    Assign to Class ({selectedUserIds.length})
+                    มอบหมาย ({selectedUserIds.length})
                   </Button>
                 )}
               </div>
@@ -434,9 +471,9 @@ export function StudentManagement() {
               ) : authorizedUsers.length === 0 ? (
                 <div className="text-center py-12">
                   <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium">All users are assigned!</h3>
+                  <h3 className="text-lg font-medium">ผู้ใช้ทั้งหมดถูกกำหนด roleแล้ว</h3>
                   <p className="text-muted-foreground">
-                    There are no unlinked students left.
+                    ไม่มีผู้ใช้ที่ยังไม่ได้เชื่อมโยงกับระเบียนนักเรียน
                   </p>
                 </div>
               ) : (
@@ -447,7 +484,7 @@ export function StudentManagement() {
                       onCheckedChange={handleSelectAllUsers}
                       className="mr-3"
                     />
-                    <span className="text-sm font-medium text-muted-foreground">Select All</span>
+                    <span className="text-sm font-medium text-muted-foreground">เลือกทั้งหมด</span>
                   </div>
                   {authorizedUsers.map((user, index) => (
                     <motion.div
@@ -470,7 +507,7 @@ export function StudentManagement() {
                         </div>
                       </div>
                       <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
-                        Unassigned
+                        ยังไม่ถูกกำหนด role
                       </Badge>
                     </motion.div>
                   ))}
@@ -485,13 +522,13 @@ export function StudentManagement() {
       <Dialog open={isBulkAssignOpen} onOpenChange={setIsBulkAssignOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Assign Students to Class</DialogTitle>
+            <DialogTitle>เพิ่มนักเรียนไปยังห้องเรียน</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <p>Assigning <strong>{selectedUserIds.length}</strong> users to:</p>
+            <p>เพิ่ม <strong>{selectedUserIds.length}</strong> ผู้ใช้ไปยัง:</p>
             <Select value={targetClassId} onValueChange={setTargetClassId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a class" />
+                <SelectValue placeholder="เลือกห้องเรียน" />
               </SelectTrigger>
               <SelectContent>
                 {classes.map((c) => (
@@ -500,17 +537,17 @@ export function StudentManagement() {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Student IDs will be automatically generated.
+              รหัสนักเรียนจะถูกสร้างขึ้นโดยอัตโนมัติ
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsBulkAssignOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsBulkAssignOpen(false)}>ยกเลิก</Button>
             <Button 
               onClick={handleBulkAssign} 
               disabled={!targetClassId || isProcessing}
               className="gradient-primary text-primary-foreground"
             >
-              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Confirm Assignment"}
+              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "ยืนยันการเพิ่ม"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -520,13 +557,13 @@ export function StudentManagement() {
       <Dialog open={isBulkMoveOpen} onOpenChange={setIsBulkMoveOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Move Students to Class</DialogTitle>
+            <DialogTitle>ย้ายนักเรียนไปยังห้องเรียน</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <p>Moving <strong>{selectedStudentIds.length}</strong> students to:</p>
+            <p>ย้าย <strong>{selectedStudentIds.length}</strong> นักเรียนไปยัง:</p>
             <Select value={targetClassId} onValueChange={setTargetClassId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a class" />
+                <SelectValue placeholder="เลือกห้องเรียน" />
               </SelectTrigger>
               <SelectContent>
                 {classes.map((c) => (
@@ -536,17 +573,41 @@ export function StudentManagement() {
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsBulkMoveOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsBulkMoveOpen(false)}>ยกเลิก</Button>
             <Button 
               onClick={handleBulkMove} 
               disabled={!targetClassId || isProcessing}
               className="gradient-primary text-primary-foreground"
             >
-              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Confirm Move"}
+              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "ยืนยันการย้าย"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Bulk Delete Dialog */}
+        <AlertDialog open={isBulkDeleteOpen} onOpenChange={setIsBulkDeleteOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">ลบนักเรียนหลายคน</AlertDialogTitle>
+            <AlertDialogDescription>
+                คุณแน่ใจหรือไม่ว่าต้องการลบ <strong>{selectedStudentIds.length}</strong> นักเรียน?
+                <br/><span className="text-destructive font-bold">การดำเนินการนี้ไม่สามารถย้อนกลับได้</span>
+                <br/>คะแนนและบันทึกทั้งหมดที่เกี่ยวข้องกับนักเรียนเหล่านี้จะถูกลบอย่างถาวร
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction 
+                onClick={handleBulkDelete}
+                className="bg-destructive hover:bg-destructive/90"
+                disabled={isProcessing}
+            >
+                {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete Users"}
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+        </AlertDialog>
     </div>
   );
 }

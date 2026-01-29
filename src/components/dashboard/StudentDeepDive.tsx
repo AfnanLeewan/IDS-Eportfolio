@@ -227,10 +227,10 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
-              Skill Profile Comparison
+              เปรียบเทียบผลการเรียน
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Student performance vs Class Average vs Top 10%
+              ผลการเรียนของนักเรียนเทียบกับค่าเฉลี่ยของห้องและกลุ่ม Top 10%
             </p>
           </CardHeader>
           <CardContent>
@@ -256,8 +256,8 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
                   }}
                 />
                 <Legend />
-                <Bar dataKey="studentScore" name="Student" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="classAverage" name="Class Avg" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="studentScore" name="นักเรียน" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="classAverage" name="ค่าเฉลี่ยห้อง" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="top10Average" name="Top 10%" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -265,13 +265,13 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
             {/* Gap to Top 10 */}
             <div className="mt-4 p-4 bg-muted/50 rounded-xl">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Gap to Top 10%</span>
+                <span className="text-sm font-medium">คะแนนห่างจากกลุ่ม Top 10%</span>
                 <div className="flex items-center gap-2">
                   {studentTotal.percentage >= top10Average ? (
                     <>
                       <TrendingUp className="h-4 w-4 text-success" />
                       <span className="text-success font-semibold">
-                        Already in Top 10%!
+                        อยู่ในกลุ่ม Top 10%
                       </span>
                     </>
                   ) : (
@@ -292,7 +292,7 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
       {/* Sub-topic Score Comparison with Subject Filter */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Sub-topic Analysis</h3>
+          <h3 className="text-lg font-semibold">วิเคราะห์รายบทเรียน</h3>
           <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Select Subject" />
@@ -327,7 +327,7 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
-                Areas for Improvement
+                บทเรียนที่ควรปรับปรุง
                 {weaknesses.length > 0 && (
                   <Badge variant="destructive" className="ml-2">
                     {weaknesses.length} topics
@@ -335,7 +335,7 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
                 )}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Sub-topics scoring below 50%
+                บทเรียนที่ได้คะแนนต่ำกว่า 50%
               </p>
             </CardHeader>
             <CardContent>
@@ -362,7 +362,7 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
                       </div>
                       <Progress value={topic.percentage} className="h-2" />
                       <p className="text-xs text-muted-foreground mt-2">
-                        📚 {topic.recommendation}
+                         {topic.recommendation}
                       </p>
                     </motion.div>
                   ))}
@@ -371,7 +371,7 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
                 <div className="text-center py-8">
                   <Award className="h-12 w-12 mx-auto text-success mb-3" />
                   <p className="text-muted-foreground">
-                    Great job! No sub-topics below 50%
+                    เยี่ยมมาก! ไม่พบหัวข้อที่ได้คะแนนต่ำกว่า 50%
                   </p>
                 </div>
               )}
@@ -389,7 +389,7 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <Award className="h-5 w-5 text-success" />
-                Strengths
+                จุดแข็ง
                 {strengths.length > 0 && (
                   <Badge className="ml-2 bg-success text-success-foreground">
                     {strengths.length} topics
@@ -397,7 +397,7 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
                 )}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Sub-topics scoring 80% or above
+                บทเรียนที่ได้คะแนน 80% ขึ้นไป
               </p>
             </CardHeader>
             <CardContent>
@@ -427,7 +427,7 @@ export function StudentDeepDive({ student, classStudents, subjects = [], classes
                 <div className="text-center py-8">
                   <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
                   <p className="text-muted-foreground">
-                    Keep working - excellence is within reach!
+                    ไม่พบบทเรียนที่ได้คะแนน 80% ขึ้นไป
                   </p>
                 </div>
               )}

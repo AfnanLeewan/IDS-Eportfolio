@@ -602,7 +602,7 @@ export function AnalyticsDashboard({
           </motion.div>
         )}
 
-        {/* Level 2: Subject & Sub-topic Analysis */}
+        {/* Level 2: Subject & วิเคราะห์รายบทเรียน */}
         {activeLevel === 2 && (
           <motion.div
             key="level-2"

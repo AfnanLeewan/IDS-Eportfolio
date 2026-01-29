@@ -291,17 +291,17 @@ export function ScoreUploadDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>อัปโหลดคะแนน (Upload Scores)</DialogTitle>
+          <DialogTitle>อัปโหลดคะแนน </DialogTitle>
         </DialogHeader>
 
         {step === 1 && (
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Program</Label>
+                <Label>โปรแกรม</Label>
                 <Select value={selectedProgramId} onValueChange={setSelectedProgramId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Program" />
+                    <SelectValue placeholder="เลือกโปรแกรม" />
                   </SelectTrigger>
                   <SelectContent>
                     {programs.map((p: any) => (
@@ -311,10 +311,10 @@ export function ScoreUploadDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Assessment</Label>
+                <Label>การสอบ</Label>
                 <Select value={selectedAssessmentId} onValueChange={setSelectedAssessmentId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Assessment" />
+                    <SelectValue placeholder="เลือกการสอบ" />
                   </SelectTrigger>
                   <SelectContent>
                     {assessments.map((a: any) => (
@@ -324,10 +324,10 @@ export function ScoreUploadDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Subject</Label>
+                <Label>วิชา</Label>
                 <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Subject" />
+                    <SelectValue placeholder="เลือกวิชา" />
                   </SelectTrigger>
                   <SelectContent>
                     {subjects.map((s: any) => (
@@ -341,8 +341,8 @@ export function ScoreUploadDialog({
             <div className="border-2 border-dashed rounded-xl p-8 text-center space-y-4 hover:bg-muted/50 transition-colors">
               <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
               <div>
-                <p className="font-medium">Click to upload or drag and drop</p>
-                <p className="text-sm text-muted-foreground">CSV files only</p>
+                <p className="font-medium">คลิกเพื่ออัปโหลดหรือลากและวาง</p>
+                <p className="text-sm text-muted-foreground">ไฟล์ CSV เท่านั้น</p>
               </div>
               <Input 
                 type="file" 
@@ -352,7 +352,7 @@ export function ScoreUploadDialog({
                 onChange={handleFileUpload}
               />
               <Button variant="outline" onClick={() => document.getElementById('file-upload')?.click()}>
-                Select File
+                เลือกไฟล์
               </Button>
               {file && <p className="text-sm font-medium text-primary">{file.name}</p>}
             </div>
@@ -360,11 +360,11 @@ export function ScoreUploadDialog({
             <div className="flex justify-between items-center bg-muted/30 p-4 rounded-lg">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <FileText className="h-4 w-4" />
-                <span>Need a template?</span>
+                <span>ต้องการเทมเพลตหรือไม่?</span>
               </div>
               <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} disabled={!selectedProgramId}>
                 <Download className="h-4 w-4 mr-2" />
-                Download Template
+                ดาวน์โหลดเทมเพลต
               </Button>
             </div>
           </div>
@@ -374,9 +374,9 @@ export function ScoreUploadDialog({
           <div className="space-y-6 py-4">
             <Alert>
               <Check className="h-4 w-4" />
-              <AlertTitle>File Parsed Successfully</AlertTitle>
+              <AlertTitle>อัปโหลดไฟล์สำเร็จ</AlertTitle>
               <AlertDescription>
-                Found {parsedData.length} records and {lessonColumns.length} potential score columns.
+                พบ {parsedData.length} รายการ และ {lessonColumns.length} คอลัมน์คะแนนที่เป็นไปได้
               </AlertDescription>
             </Alert>
 
@@ -391,11 +391,11 @@ export function ScoreUploadDialog({
                         {exists ? (
                           <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium flex items-center gap-1">
                             <AlertTriangle className="h-3 w-3" />
-                            Exists - Will Overwrite
+                            มีอยู่แล้ว - จะเขียนทับ
                           </span>
                         ) : (
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                            New Lesson
+                            วิชาใหม่
                           </span>
                         )}
                       </div>
@@ -422,18 +422,18 @@ export function ScoreUploadDialog({
         <DialogFooter>
           {step === 1 ? (
             <Button onClick={handleParse} disabled={!file || !selectedSubjectId || !selectedAssessmentId}>
-              Next: Review
+              ถัดไป: ตรวจสอบ
             </Button>
           ) : (
             <>
-              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+              <Button variant="outline" onClick={() => setStep(1)}>ย้อนกลับ</Button>
               <Button 
                 onClick={handleSubmit} 
                 disabled={upsertScores.isPending || createSubTopic.isPending}
                 className="gradient-primary text-primary-foreground"
               >
                 {(upsertScores.isPending || createSubTopic.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Confirm Upload
+                ยืนยันการอัปโหลด
               </Button>
             </>
           )}

@@ -212,14 +212,14 @@ export function UserCSVUpload({ onSuccess }: UserCSVUploadProps) {
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <Upload className="h-4 w-4" />
-          Import CSV
+          นำเข้าข้อมูลผู้ใช้ผ่าน CSV
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Import Users via CSV</DialogTitle>
+          <DialogTitle>นำเข้าข้อมูลผู้ใช้ผ่าน CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file with columns: name, email, password, role, class (optional).
+            อัปโหลดไฟล์ CSV ที่มีคอลัมน์: name, email, password, role, class (optional).
           </DialogDescription>
         </DialogHeader>
 
@@ -228,11 +228,11 @@ export function UserCSVUpload({ onSuccess }: UserCSVUploadProps) {
             <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg">
                 <div className="text-sm text-muted-foreground flex items-center gap-2">
                     <FileText className="h-4 w-4" />
-                    Need the format?
+                    ต้องการรูปแบบไฟล์หรือไม่
                 </div>
                 <Button variant="ghost" size="sm" onClick={downloadTemplate} className="gap-1 text-primary">
                     <Download className="h-4 w-4" />
-                    Download Template
+                    ดาวน์โหลดเทมเพลต
                 </Button>
             </div>
 
@@ -250,8 +250,8 @@ export function UserCSVUpload({ onSuccess }: UserCSVUploadProps) {
                         onChange={handleFileChange} 
                     />
                     <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-                    <p className="font-medium">Click to upload CSV</p>
-                    <p className="text-sm text-muted-foreground mt-1">Supports bulk user creation</p>
+                    <p className="font-medium">คลิกเพื่ออัปโหลด CSV</p>
+                    <p className="text-sm text-muted-foreground mt-1">รองรับการสร้างผู้ใช้จำนวนมาก</p>
                 </div>
             ) : (
                 <div className="space-y-4">
@@ -260,7 +260,7 @@ export function UserCSVUpload({ onSuccess }: UserCSVUploadProps) {
                             <FileText className="h-5 w-5 text-primary" />
                             <div>
                                 <p className="font-medium text-sm truncate max-w-[200px]">{file.name}</p>
-                                <p className="text-xs text-muted-foreground">{parsedData.length} users found</p>
+                                <p className="text-xs text-muted-foreground">พบ {parsedData.length} รายชื่อ</p>
                             </div>
                         </div>
                         <Button variant="ghost" size="icon" onClick={reset} disabled={isProcessing}>
@@ -272,7 +272,7 @@ export function UserCSVUpload({ onSuccess }: UserCSVUploadProps) {
                     {isProcessing && (
                          <div className="space-y-1">
                             <div className="flex justify-between text-xs">
-                                <span>Processing...</span>
+                                <span>กำลังประมวลผล...</span>
                                 <span>{progress}%</span>
                             </div>
                             <Progress value={progress} className="h-2" />
@@ -296,11 +296,11 @@ export function UserCSVUpload({ onSuccess }: UserCSVUploadProps) {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={isProcessing}>
-             Close
+             ปิด
           </Button>
           <Button onClick={processUpload} disabled={!file || isProcessing || parsedData.length === 0}>
             {isProcessing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Start Import
+            เริ่มนำเข้า
           </Button>
         </DialogFooter>
       </DialogContent>

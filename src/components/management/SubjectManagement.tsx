@@ -256,7 +256,7 @@ export function SubjectManagement() {
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="subjectName">Subject Name</Label>
+                  <Label htmlFor="subjectName">ชื่อวิชา</Label>
                   <Input
                     id="subjectName"
                     placeholder="e.g., Biology"
@@ -267,7 +267,7 @@ export function SubjectManagement() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="subjectCode">Subject Code</Label>
+                  <Label htmlFor="subjectCode">รหัสวิชา</Label>
                   <Input
                     id="subjectCode"
                     placeholder="e.g., BIO"
@@ -281,7 +281,7 @@ export function SubjectManagement() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsCreateSubjectOpen(false)}>
-                  Cancel
+                  ยกเลิก
                 </Button>
                 <Button 
                   onClick={handleCreateSubject} 
@@ -291,10 +291,10 @@ export function SubjectManagement() {
                   {createSubject.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
+                      กำลังสร้าง...
                     </>
                   ) : (
-                    "Create Subject"
+                    "สร้างวิชา"
                   )}
                 </Button>
               </DialogFooter>
@@ -344,7 +344,7 @@ export function SubjectManagement() {
                       <div className="text-left">
                         <p className="font-semibold">{subject.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          Code: {subject.code} • {subject.sub_topics?.length || 0} sub-topics • {totalScore} total marks
+                          รหัสวิชา: {subject.code} • {subject.sub_topics?.length || 0} บทเรียน • {totalScore} คะแนนรวม
                         </p>
                       </div>
                     </div>
@@ -356,7 +356,7 @@ export function SubjectManagement() {
                         onClick={() => openAddSubTopic(subject.id)}
                       >
                         <Plus className="h-4 w-4" />
-                        Add Sub-Topic
+                        เพิ่มบทเรียน
                       </Button>
                       <Button
                         variant="ghost"
@@ -368,7 +368,7 @@ export function SubjectManagement() {
                         }}
                       >
                         <UserCog className="h-4 w-4" />
-                        Teachers
+                        ผู้สอน
                       </Button>
                       <Button
                         variant="ghost"
@@ -398,7 +398,7 @@ export function SubjectManagement() {
                         <div className="border-t bg-muted/30 p-4">
                           {!subject.sub_topics || subject.sub_topics.length === 0 ? (
                             <p className="text-sm text-muted-foreground text-center py-4">
-                              No sub-topics yet. Click "Add Sub-Topic" to create one.
+                              ยังไม่มีบทเรียน กรุณาเพิ่มบทเรียน
                             </p>
                           ) : (
                             <div className="space-y-2">
@@ -445,11 +445,11 @@ export function SubjectManagement() {
       <Dialog open={isCreateSubTopicOpen} onOpenChange={setIsCreateSubTopicOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Sub-Topic</DialogTitle>
+            <DialogTitle>เพิ่มบทเรียน</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="subTopicName">Sub-Topic Name</Label>
+              <Label htmlFor="subTopicName">ชื่อบทเรียน</Label>
               <Input
                 id="subTopicName"
                 placeholder="e.g., Thermodynamics"
@@ -460,7 +460,7 @@ export function SubjectManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="maxScore">Maximum Score</Label>
+              <Label htmlFor="maxScore">คะแนนเต็ม</Label>
               <Input
                 id="maxScore"
                 type="number"
@@ -475,7 +475,7 @@ export function SubjectManagement() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateSubTopicOpen(false)}>
-              Cancel
+              ยกเลิก
             </Button>
             <Button 
               onClick={handleCreateSubTopic} 
@@ -485,10 +485,10 @@ export function SubjectManagement() {
               {createSubTopic.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Adding...
+                  กำลังเพิ่ม...
                 </>
               ) : (
-                "Add Sub-Topic"
+                "เพิ่มบทเรียน"
               )}
             </Button>
           </DialogFooter>
@@ -499,9 +499,9 @@ export function SubjectManagement() {
       <Dialog open={isManageTeachersOpen} onOpenChange={setIsManageTeachersOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Manage Teachers</DialogTitle>
+            <DialogTitle>มอบหมายผู้สอน</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Assign teachers to {displaySubjects.find(s => s.id === selectedSubjectId)?.name}
+              มอบหมายผู้สอนวิชา {displaySubjects.find(s => s.id === selectedSubjectId)?.name}
             </p>
           </DialogHeader>
           
@@ -509,7 +509,7 @@ export function SubjectManagement() {
             <div className="flex gap-2">
               <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
                 <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select teacher..." />
+                  <SelectValue placeholder="เลือกผู้สอน" />
                 </SelectTrigger>
                 <SelectContent>
                   {teachers
@@ -530,12 +530,12 @@ export function SubjectManagement() {
                 }}
                 disabled={!selectedTeacherId || assignTeacher.isPending}
               >
-                Assign
+                มอบหมาย
               </Button>
             </div>
 
             <div className="space-y-2">
-              <Label>Assigned Teachers</Label>
+              <Label>ผู้สอน</Label>
               <div className="space-y-2">
                 {assignments
                   .filter((a: any) => a.subject_id === selectedSubjectId)
@@ -568,7 +568,7 @@ export function SubjectManagement() {
                   })}
                 {assignments.filter((a: any) => a.subject_id === selectedSubjectId).length === 0 && (
                   <p className="text-sm text-center text-muted-foreground py-4">
-                    No teachers assigned yet.
+                    ยังไม่มีผู้สอน
                   </p>
                 )}
               </div>

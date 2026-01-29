@@ -49,7 +49,7 @@ export function SkillProfileComparison({ student }: SkillProfileComparisonProps)
   const chartData = preALevelProgram.subjects.map((subject) => ({
     subject: subject.code,
     Student: Math.round(getSubjectScore(student, subject.id).percentage),
-    "Class Avg": Math.round(getClassAverage(student.classId, subject.id)),
+    "ค่าเฉลี่ยห้อง": Math.round(getClassAverage(student.classId, subject.id)),
     "Top 10%": Math.round(getTop10Average(subject.id)),
   }));
 
@@ -69,11 +69,11 @@ export function SkillProfileComparison({ student }: SkillProfileComparisonProps)
         <div className="flex items-center gap-2">
           <Target className="h-5 w-5 text-primary" />
           <CardTitle className="text-lg font-semibold">
-            Skill Profile Comparison
+            เปรียบเทียบผลการเรียน
           </CardTitle>
         </div>
         <p className="text-sm text-muted-foreground">
-          Student performance vs Class Average vs Top 10%
+          ผลการเรียนของนักเรียนเทียบกับค่าเฉลี่ยของห้องและกลุ่ม Top 10%
         </p>
       </CardHeader>
       <CardContent>
@@ -103,12 +103,12 @@ export function SkillProfileComparison({ student }: SkillProfileComparisonProps)
               />
               <Legend />
               <Bar 
-                dataKey="Student" 
+                dataKey="นักเรียน" 
                 fill="hsl(var(--primary))" 
                 radius={[4, 4, 0, 0]}
               />
               <Bar 
-                dataKey="Class Avg" 
+                dataKey="ค่าเฉลี่ยห้อง" 
                 fill="hsl(var(--muted-foreground))" 
                 radius={[4, 4, 0, 0]}
               />
