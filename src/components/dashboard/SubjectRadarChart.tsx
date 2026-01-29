@@ -65,7 +65,7 @@ export function SubjectRadarChart({
                   tickCount={5}
                 />
                 <Radar
-                  name="คะแนน"
+                  name="Your Score"
                   dataKey="studentScore"
                   stroke="#10B981"
                   fill="#10B981"

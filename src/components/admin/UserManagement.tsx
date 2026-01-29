@@ -21,7 +21,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCreateUser, useUpdateUser, useDeleteUser } from "@/hooks/useSupabaseData";
+import { useCreateUser, useUpdateUser, useDeleteUser, useCreateStudent, useClasses } from "@/hooks/useSupabaseData";
+
+
 import { Edit2, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
@@ -42,6 +44,7 @@ interface UserWithRole {
   full_name: string | null;
   role: AppRole;
   created_at: string;
+  student_id?: string;
 }
 
 const roleLabels: Record<AppRole, string> = {
@@ -72,12 +75,21 @@ const UserManagement = () => {
   // Create User State
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const createUserMutation = useCreateUser();
+  const createStudentMutation = useCreateStudent();
+  const { data: classes = [] } = useClasses();
+
   const [newUser, setNewUser] = useState({
+
     email: '',
     password: '',
     fullName: '',
-    role: 'student' as AppRole
+    role: 'student' as AppRole,
+    studentId: '',
+    classId: '',
   });
+
+
+
 
   // Edit User State
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -85,7 +97,9 @@ const UserManagement = () => {
   const updateUserMutation = useUpdateUser();
   const [editForm, setEditForm] = useState({
     fullName: '',
-    role: 'student' as AppRole
+    role: 'student' as AppRole,
+    studentId: '',
+    oldStudentId: '' 
   });
 
   // Delete User State
@@ -123,14 +137,26 @@ const UserManagement = () => {
       return;
     }
 
+    const { data: studentsData, error: studentsError } = await supabase
+      .from('students')
+      .select('user_id, id');
+
+    if (studentsError) {
+      console.error('Error fetching students:', studentsError);
+      // Don't block, just log
+    }
+
     const usersWithRoles: UserWithRole[] = profiles.map((profile) => {
       const userRole = roles.find((r) => r.user_id === profile.user_id);
+      const student = studentsData?.find(s => s.user_id === profile.user_id);
+      
       return {
         user_id: profile.user_id,
         email: profile.email,
         full_name: profile.full_name,
         role: (userRole?.role as AppRole) || 'student',
         created_at: profile.created_at,
+        student_id: student?.id
       };
     });
 
@@ -182,20 +208,56 @@ const UserManagement = () => {
         return;
       }
 
-      await createUserMutation.mutateAsync({
+      if (newUser.role === 'student' && (!newUser.studentId || !newUser.classId)) {
+        toast({
+          title: 'ข้อมูลไม่ครบถ้วน',
+          description: 'กรุณากรอกรหัสนักเรียนและเลือกห้องเรียน',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // 1. Create Auth User
+      const userId = await createUserMutation.mutateAsync({
         email: newUser.email,
         password: newUser.password,
         fullName: newUser.fullName,
         role: newUser.role
       });
+
+      // 2. If student, create student record
+      if (newUser.role === 'student' && userId) {
+        try {
+          await createStudentMutation.mutateAsync({
+            id: newUser.studentId,
+            name: newUser.fullName,
+            email: newUser.email,
+            user_id: userId,
+            class_id: newUser.classId
+          } as any);
+
+        } catch (studentError) {
+          console.error('Failed to create student record:', studentError);
+          toast({
+            title: 'ข้อผิดพลาด',
+            description: 'สร้างบัญชีผู้ใช้แล้ว แต่ไม่สามารถสร้างข้อมูลนักเรียนได้',
+            variant: 'destructive',
+          });
+          // Note: We don't rollback the user creation here, but in a real prod app we might want to
+        }
+      }
       
       setCreateDialogOpen(false);
       setNewUser({
         email: '',
         password: '',
         fullName: '',
-        role: 'student'
+        role: 'student',
+        studentId: '',
+        classId: ''
       });
+
+
       fetchUsers(); // Reload list
       
     } catch (error) {
@@ -204,11 +266,14 @@ const UserManagement = () => {
     }
   };
 
+
   const handleOpenEdit = (user: UserWithRole) => {
     setSelectedUser(user);
     setEditForm({
       fullName: user.full_name || '',
-      role: user.role
+      role: user.role,
+      studentId: user.student_id || '',
+      oldStudentId: user.student_id || ''
     });
     setEditDialogOpen(true);
   };
@@ -217,15 +282,58 @@ const UserManagement = () => {
     if (!selectedUser) return;
     
     try {
+      // 1. Update User Profile & Role
       await updateUserMutation.mutateAsync({
         userId: selectedUser.user_id,
         fullName: editForm.fullName,
         role: editForm.role
       });
+
+      // 2. Update Student ID if changed (and if role is student)
+      if (editForm.role === 'student' && editForm.studentId && editForm.studentId !== editForm.oldStudentId) {
+         if (!editForm.oldStudentId) {
+             // Case: User didn't have a student record linked or we are assigning a new ID to a fresh student
+             // This might happen if we just changed role to Student.
+             // Ideally we should create a student record here if missing, but for now we focus on UPDATE.
+             // If oldStudentId is missing, it means no previous student record found for this user in fetchUsers.
+             // We can try to update based on user_id if we want, or just warn.
+             // For safety, let's try to update where user_id matches
+             const { error: idError } = await supabase
+                .from('students')
+                .update({ id: editForm.studentId })
+                .eq('user_id', selectedUser.user_id);
+             
+             if (idError) throw idError;
+
+         } else {
+             // Standard ID update
+             const { error: idError } = await supabase
+                .from('students')
+                .update({ id: editForm.studentId })
+                .eq('id', editForm.oldStudentId);
+            
+             if (idError) throw idError;
+         }
+         toast({
+            title: 'สำเร็จ',
+            description: 'อัปเดตข้อมูลผู้ใช้และรหัสนักเรียนเรียบร้อยแล้ว',
+         });
+      } else {
+          toast({
+            title: 'สำเร็จ',
+            description: 'อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว',
+         });
+      }
+
       setEditDialogOpen(false);
       fetchUsers();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      toast({
+        title: 'เกิดข้อผิดพลาด',
+        description: error.message || 'ไม่สามารถอัปเดตข้อมูลได้',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -329,7 +437,40 @@ const UserManagement = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
+
+                  {newUser.role === 'student' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="studentId">รหัสนักเรียน <span className="text-destructive">*</span></Label>
+                        <Input 
+                          id="studentId" 
+                          value={newUser.studentId}
+                          onChange={(e) => setNewUser({...newUser, studentId: e.target.value})}
+                          placeholder="เช่น 65001"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="classId">ห้องเรียน <span className="text-destructive">*</span></Label>
+                        <Select
+                          value={newUser.classId}
+                          onValueChange={(val) => setNewUser({...newUser, classId: val})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="เลือกห้องเรียน" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {classes.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+                  </div>
+
+
+
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>ยกเลิก</Button>
                   <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
@@ -479,6 +620,21 @@ const UserManagement = () => {
                 </SelectContent>
               </Select>
             </div>
+
+            {editForm.role === 'student' && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-studentId">รหัสนักเรียน</Label>
+                <Input 
+                  id="edit-studentId" 
+                  value={editForm.studentId}
+                  onChange={(e) => setEditForm({...editForm, studentId: e.target.value})}
+                  placeholder="เช่น 65001"
+                />
+                <p className="text-xs text-muted-foreground text-yellow-600">
+                  <span className="font-bold">คำเตือน:</span> การเปลี่ยนรหัสนักเรียนอาจส่งผลต่อข้อมูลที่เกี่ยวข้อง
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>ยกเลิก</Button>

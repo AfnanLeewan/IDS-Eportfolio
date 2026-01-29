@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Pencil, Trash2, Users, GraduationCap, Layers, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { generateStudentId } from "@/lib/dataUtils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,6 +14,14 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -347,29 +356,106 @@ function StudentManagementDialog({
   const deleteStudent = useDeleteStudent();
   
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [authorizedUsers, setAuthorizedUsers] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [studentForm, setStudentForm] = useState<StudentFormData>({
     id: '',
     name: '',
     email: '',
   });
 
-  const handleAddStudent = () => {
-    if (!studentForm.id.trim() || !studentForm.name.trim()) {
-      toast.error('กรุณากรอกรหัสนักเรียนและชื่อ');
+  // Fetch authorized users when dialog opens
+  const fetchAuthorizedUsers = async () => {
+    try {
+      // Get all profiles
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select(`user_id, email, full_name`);
+      
+      if (profileError) throw profileError;
+
+      // Get user roles (student)
+      const { data: roles, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .eq('role', 'student');
+
+      if (roleError) throw roleError;
+
+      // Get existing students (to exclude them)
+      const { data: existingStudents, error: studentsError } = await supabase
+        .from('students')
+        .select('user_id')
+        .not('user_id', 'is', null);
+
+      if (studentsError) throw studentsError;
+
+      const existingUserIds = new Set(existingStudents?.map(s => s.user_id));
+      const studentRoleUserIds = new Set(roles?.map(r => r.user_id));
+
+      const availableUsers = profiles
+        ?.filter(p => 
+          p.user_id && 
+          studentRoleUserIds.has(p.user_id) && 
+          !existingUserIds.has(p.user_id)
+        )
+        .map(p => ({
+          user_id: p.user_id,
+          email: p.email || '',
+          full_name: p.full_name || p.email || 'Unknown',
+        })) || [];
+
+      setAuthorizedUsers(availableUsers);
+    } catch (error) {
+      console.error('Error fetching authorized users:', error);
+    }
+  };
+
+  const handleOpenAddDialog = (open: boolean) => {
+    setIsAddStudentOpen(open);
+    if (open) {
+      fetchAuthorizedUsers();
+    }
+  };
+
+  const handleUserSelect = (userId: string) => {
+    setSelectedUserId(userId);
+  };
+
+  const handleAddStudent = async () => {
+    if (!selectedUserId) {
+      toast.error('กรุณาเลือกผู้ใช้งาน');
       return;
     }
 
-    createStudent.mutate({
-      id: studentForm.id,
-      name: studentForm.name,
-      class_id: classData.class_id,
-      email: studentForm.email || undefined,
-    }, {
-      onSuccess: () => {
-        setIsAddStudentOpen(false);
-        setStudentForm({ id: '', name: '', email: '' });
-      },
-    });
+    const user = authorizedUsers.find(u => u.user_id === selectedUserId);
+    if (!user) return;
+
+    try {
+        // Fetch all existing students to generate a unique ID
+        const { data: allStudents } = await supabase
+            .from('students')
+            .select('id');
+            
+        const newId = generateStudentId(allStudents as any || []);
+
+        createStudent.mutate({
+        id: newId,
+        name: user.full_name,
+        class_id: classData.class_id,
+        email: user.email || undefined,
+        user_id: selectedUserId,
+        }, {
+        onSuccess: () => {
+            setIsAddStudentOpen(false);
+            setStudentForm({ id: '', name: '', email: '' });
+            setSelectedUserId("");
+        },
+        });
+    } catch (err) {
+        console.error("Error generating ID", err);
+        toast.error("Error generating Student ID");
+    }
   };
 
   const handleDeleteStudent = (studentId: string, studentName: string) => {
@@ -429,7 +515,7 @@ function StudentManagementDialog({
         </div>
 
         <div className="border-t pt-4">
-          <Dialog open={isAddStudentOpen} onOpenChange={setIsAddStudentOpen}>
+          <Dialog open={isAddStudentOpen} onOpenChange={handleOpenAddDialog}>
             <DialogTrigger asChild>
               <Button className="w-full">
                 <UserPlus className="mr-2 h-4 w-4" />
@@ -445,38 +531,26 @@ function StudentManagementDialog({
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="studentId">รหัสนักเรียน *</Label>
-                  <Input
-                    id="studentId"
-                    placeholder="เช่น S001, 65001"
-                    value={studentForm.id}
-                    onChange={(e) =>
-                      setStudentForm({ ...studentForm, id: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="studentName">ชื่อ-นามสกุล *</Label>
-                  <Input
-                    id="studentName"
-                    placeholder="เช่น สมชาย ใจดี"
-                    value={studentForm.name}
-                    onChange={(e) =>
-                      setStudentForm({ ...studentForm, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="studentEmail">อีเมล (ไม่บังคับ)</Label>
-                  <Input
-                    id="studentEmail"
-                    type="email"
-                    placeholder="student@example.com"
-                    value={studentForm.email}
-                    onChange={(e) =>
-                      setStudentForm({ ...studentForm, email: e.target.value })
-                    }
-                  />
+                   <Label>เลือกผู้ใช้งาน *</Label>
+                   <Select value={selectedUserId} onValueChange={handleUserSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกผู้ใช้งานที่มีสิทธิ์ (Student Role)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {authorizedUsers.length === 0 ? (
+                        <SelectItem value="none" disabled>ไม่มีผู้ใช้ที่สามารถเพิ่มได้</SelectItem>
+                      ) : (
+                        authorizedUsers.map((user) => (
+                          <SelectItem key={user.user_id} value={user.user_id}>
+                            {user.full_name} ({user.email})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                   </Select>
+                   <p className="text-xs text-muted-foreground">
+                        ระบบจะสร้างรหัสนักเรียนให้อัตโนมัติ (เช่น STU0001) และดึงชื่อ/อีเมลจากข้อมูลผู้ใช้
+                   </p>
                 </div>
               </div>
               <DialogFooter>

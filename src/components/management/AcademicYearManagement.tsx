@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Plus, Archive, Star, Edit2, Check, Eye, Trash2 } from 'lucide-react';
+import { Calendar, Plus, Archive, Star, Edit2, Check, X, Eye, RotateCcw, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,8 +46,8 @@ export function AcademicYearManagement() {
   const navigate = useNavigate();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState<AcademicYear | null>(null);
 
@@ -58,7 +58,7 @@ export function AcademicYearManagement() {
     endDate: '',
   });
 
-  const [editFormData, setEditFormData] = useState({
+  const [editForm, setEditForm] = useState({
     yearNumber: 0,
     displayName: '',
     startDate: '',
@@ -94,6 +94,7 @@ export function AcademicYearManagement() {
         });
       },
       onError: (error: any) => {
+        // Fallback error handling if client checking missed something (e.g. concurrent race)
         if (error.message?.includes('duplicate key')) {
            toast.error(`ปีการศึกษา ${newYear.yearNumber} มีอยู่ในระบบแล้ว`);
         } else {
@@ -104,20 +105,30 @@ export function AcademicYearManagement() {
   };
 
   const handleUpdateYear = () => {
-     if (!selectedYear) return;
-     
-     updateYear.mutate({
-        id: selectedYear.id,
-        year_number: editFormData.yearNumber,
-        display_name: editFormData.displayName,
-        start_date: editFormData.startDate,
-        end_date: editFormData.endDate,
-     }, {
-        onSuccess: () => {
-           setEditDialogOpen(false);
-           setSelectedYear(null);
-        }
-     });
+    if (!selectedYear) return;
+
+    updateYear.mutate({
+      id: selectedYear.id,
+      display_name: editForm.displayName,
+      start_date: editForm.startDate,
+      end_date: editForm.endDate,
+    }, {
+      onSuccess: () => {
+        setEditDialogOpen(false);
+        setSelectedYear(null);
+      }
+    });
+  };
+
+  const handleDeleteYear = () => {
+    if (!selectedYear) return;
+
+    deleteYear.mutate(selectedYear.id, {
+      onSuccess: () => {
+        setDeleteDialogOpen(false);
+        setSelectedYear(null);
+      }
+    });
   };
 
   const handleSetCurrent = (yearId: string) => {
@@ -133,39 +144,30 @@ export function AcademicYearManagement() {
       },
     });
   };
-
-  const handleDelete = () => {
-     if (!selectedYear) return;
-     deleteYear.mutate(selectedYear.id, {
-        onSuccess: () => {
-           setDeleteDialogOpen(false);
-           setSelectedYear(null);
-        }
-     });
-  };
   
   const openCreateDialog = () => {
+    // Auto-calculate next year
     const maxYear = years.length > 0 
       ? Math.max(...years.map(y => y.year_number)) 
-      : new Date().getFullYear() + 543 - 1; 
+      : new Date().getFullYear() + 543 - 1; // Fallback if no years
       
     setNewYear(prev => ({
       ...prev,
       yearNumber: maxYear + 1,
-      displayName: `${maxYear + 1} (${maxYear - 543 + 1}-${maxYear - 543 + 2})`
+      displayName: `${maxYear + 1} (${maxYear - 543 + 1}-${maxYear - 543 + 2})` // Optional: Auto-fill display name too? Maybe just yearNumber for safety.
     }));
     setCreateDialogOpen(true);
   }
 
   const openEditDialog = (year: AcademicYear) => {
-     setSelectedYear(year);
-     setEditFormData({
-        yearNumber: year.year_number,
-        displayName: year.display_name,
-        startDate: year.start_date,
-        endDate: year.end_date
-     });
-     setEditDialogOpen(true);
+    setSelectedYear(year);
+    setEditForm({
+      yearNumber: year.year_number,
+      displayName: year.display_name,
+      startDate: year.start_date,
+      endDate: year.end_date,
+    });
+    setEditDialogOpen(true);
   };
 
   if (isLoading) {
@@ -208,7 +210,7 @@ export function AcademicYearManagement() {
             transition={{ duration: 0.3 }}
           >
             <Card className={`border-0 shadow-card ${year.is_current ? 'ring-2 ring-primary' : ''}`}>
-              <CardHeader className="pb-2">
+              <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -227,21 +229,34 @@ export function AcademicYearManagement() {
                       })}
                     </CardDescription>
                   </div>
+                  
+                  {/* Action Buttons */}
                   <div className="flex gap-1">
-                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => openEditDialog(year)}>
-                        <Edit2 className="h-4 w-4" />
-                     </Button>
-                     {!year.is_current && (
-                        <Button 
-                           variant="ghost" 
-                           size="icon" 
-                           className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                           onClick={() => { setSelectedYear(year); setDeleteDialogOpen(true); }}
-                        >
-                           <Trash2 className="h-4 w-4" />
-                        </Button>
-                     )}
+                     <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => openEditDialog(year)}
+                      title="แก้ไข"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    {!year.is_current && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => {
+                          setSelectedYear(year);
+                          setDeleteDialogOpen(true);
+                        }}
+                        title="ลบ"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
+
                 </div>
               </CardHeader>
               <CardContent>
@@ -267,6 +282,8 @@ export function AcademicYearManagement() {
                       size="sm"
                       variant="outline"
                       onClick={() => {
+                        // Navigate to dashboard with this year selected (read-only mode)
+                        // The scores view will detect the archived year and disable editing
                         window.localStorage.setItem('selectedYear', year.year_number.toString());
                         navigate('/', { state: { view: 'dashboard' } });
                       }}
@@ -279,29 +296,32 @@ export function AcademicYearManagement() {
                   
                   {/* For active, non-current years: Set as current button */}
                   {!year.is_current && year.is_active && (
-                    <div className="flex gap-2 flex-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleSetCurrent(year.id)}
-                          className="flex-1"
-                          disabled={setCurrentYear.isPending}
-                        >
-                          <Check className="h-4 w-4 mr-1" />
-                          ตั้งเป็นปีปัจจุบัน
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedYear(year);
-                            setArchiveDialogOpen(true);
-                          }}
-                          className=""
-                        >
-                          <Archive className="h-4 w-4" />
-                        </Button>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSetCurrent(year.id)}
+                      className="flex-1"
+                      disabled={setCurrentYear.isPending}
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      ตั้งเป็นปีปัจจุบัน
+                    </Button>
+                  )}
+                  
+                  {/* For active, non-current years: Archive button */}
+                  {year.is_active && !year.is_current && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedYear(year);
+                        setArchiveDialogOpen(true);
+                      }}
+                      className="flex-1"
+                    >
+                      <Archive className="h-4 w-4 mr-1" />
+                      เก็บถาวร
+                    </Button>
                   )}
                 </div>
               </CardContent>
@@ -374,33 +394,24 @@ export function AcademicYearManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Edit Year Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>แก้ไขปีการศึกษา</DialogTitle>
             <DialogDescription>
-              แก้ไขข้อมูลปีการศึกษา
+              แก้ไขข้อมูลปีการศึกษา {selectedYear?.year_number}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-year-number">ปีการศึกษา (พ.ศ.)</Label>
-              <Input
-                id="edit-year-number"
-                type="number"
-                value={editFormData.yearNumber}
-                onChange={(e) => setEditFormData({ ...editFormData, yearNumber: parseInt(e.target.value) })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-display-name">ชื่อแสดง</Label>
-              <Input
-                id="edit-display-name"
-                value={editFormData.displayName}
-                onChange={(e) => setEditFormData({ ...editFormData, displayName: e.target.value })}
-              />
+               <Label htmlFor="edit-display-name">ชื่อแสดง</Label>
+               <Input
+                 id="edit-display-name"
+                 value={editForm.displayName}
+                 onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -408,8 +419,8 @@ export function AcademicYearManagement() {
                 <Input
                   id="edit-start-date"
                   type="date"
-                  value={editFormData.startDate}
-                  onChange={(e) => setEditFormData({ ...editFormData, startDate: e.target.value })}
+                  value={editForm.startDate}
+                  onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -417,24 +428,21 @@ export function AcademicYearManagement() {
                 <Input
                   id="edit-end-date"
                   type="date"
-                  value={editFormData.endDate}
-                  onChange={(e) => setEditFormData({ ...editFormData, endDate: e.target.value })}
+                  value={editForm.endDate}
+                  onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              ยกเลิก
-            </Button>
-            <Button 
-              onClick={handleUpdateYear}
-              disabled={!editFormData.yearNumber || !editFormData.displayName || !editFormData.startDate || !editFormData.endDate || updateYear.isPending}
-              className="gradient-primary text-primary-foreground"
-            >
-              <Edit2 className="h-4 w-4 mr-2"/>
-              บันทึกการเปลี่ยนแปลง
-            </Button>
+             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>ยกเลิก</Button>
+             <Button 
+               onClick={handleUpdateYear}
+               disabled={updateYear.isPending}
+               className="gradient-primary text-primary-foreground"
+             >
+               บันทึกการแก้ไข
+             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -461,25 +469,25 @@ export function AcademicYearManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Delete Year Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-destructive">ลบปีการศึกษา</AlertDialogTitle>
             <AlertDialogDescription>
-              คุณแน่ใจหรือไม่ว่าต้องการลบ {selectedYear?.display_name}? 
-              <br/><span className="text-destructive font-bold">การกระทำนี้ไม่สามารถย้อนกลับได้</span> ข้อมูลการสอบ คะแนน และห้องเรียนที่เกี่ยวข้องอาจได้รับผลกระทบ
+              คุณแน่ใจหรือไม่ว่าต้องการลบปีการศึกษา {selectedYear?.display_name}? <br/>
+              <span className="font-bold text-destructive">การกระทำนี้ไม่สามารถเรียกคืนได้</span> ข้อมูลปีการศึกษานี้จะถูกลบออกจากระบบอย่างถาวร
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={handleDelete}
+              onClick={handleDeleteYear}
               className="bg-destructive hover:bg-destructive/90"
               disabled={deleteYear.isPending}
             >
-              ลบข้อมูล
+              ลบปีการศึกษา
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

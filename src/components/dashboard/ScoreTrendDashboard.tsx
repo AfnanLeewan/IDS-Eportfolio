@@ -253,7 +253,7 @@ export function ScoreTrendDashboard({ programId, studentId }: ScoreTrendDashboar
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
-                  <YAxis domain={[0, 100]} label={{ value: '% คะแนน', angle: -90, position: 'insideLeft' }} />
+                  <YAxis domain={[0, 100]} label={{ value: '% Score', angle: -90, position: 'insideLeft' }} />
                   <Tooltip />
                   <Legend />
                   {!studentId && (

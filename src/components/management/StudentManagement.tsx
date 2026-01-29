@@ -318,7 +318,7 @@ export function StudentManagement() {
         <div>
           <h3 className="text-lg font-semibold">จัดการรายชื่อนักเรียน</h3>
           <p className="text-sm text-muted-foreground">
-            จัดการรายชื่อนักเรียนและการมอบหมายชั้นเรียน
+            จัดการรายชื่อนักเรียนและการกำหนดห้องเรียน
           </p>
         </div>
       </div>
@@ -331,7 +331,7 @@ export function StudentManagement() {
           </TabsTrigger>
           <TabsTrigger value="unassigned" className="gap-2">
             <UserPlus className="h-4 w-4" />
-            ผู้ใช้ที่ยังไม่ถูกกำหนด role {authorizedUsers.length > 0 && `(${authorizedUsers.length})`}
+            ผู้ใช้ที่ยังไม่ถูกกำหนดห้องเรียน{authorizedUsers.length > 0 && `(${authorizedUsers.length})`}
           </TabsTrigger>
         </TabsList>
 
@@ -447,7 +447,7 @@ export function StudentManagement() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>ผู้ใช้ที่ยังไม่ถูกมอบหมาย</CardTitle>
+                  <CardTitle>ผู้ใช้ที่ยังไม่ถูกกำหนดห้องเรียน</CardTitle>
                   <p className="text-sm text-muted-foreground">
                     ผู้ใช้ที่มีบทบาท 'student' ที่ยังไม่ได้เชื่อมโยงกับระเบียนนักเรียน
                   </p>
@@ -458,7 +458,7 @@ export function StudentManagement() {
                     className="gap-2 gradient-primary text-primary-foreground shadow-glow"
                   >
                     <LinkIcon className="h-4 w-4" />
-                    มอบหมาย ({selectedUserIds.length})
+                    กำหนดห้องเรียน ({selectedUserIds.length})
                   </Button>
                 )}
               </div>
@@ -507,7 +507,7 @@ export function StudentManagement() {
                         </div>
                       </div>
                       <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
-                        ยังไม่ถูกกำหนด role
+                        ยังไม่ถูกกำหนดห้องเรียน
                       </Badge>
                     </motion.div>
                   ))}

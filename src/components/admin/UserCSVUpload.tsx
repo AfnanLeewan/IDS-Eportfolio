@@ -124,50 +124,30 @@ export function UserCSVUpload({ onSuccess }: UserCSVUploadProps) {
                addLog(`ℹ️ No student_id provided for ${row.name}, generated random ID: ${studentId}`);
             }
 
-            // Call Edge Function
-            // Note: This requires the 'admin-create-user' function to be deployed/served
-            const { data, error } = await supabase.functions.invoke('admin-create-user', {
-              body: {
-                email: row.email,
-                password: row.password,
-                fullName: row.name,
-                role: row.role,
-                studentId: studentId,
-                classId: classId,
-                confirmed: true
-              }
-            });
-
-            if (error) {
-              // Fallback to SQL (Previous Method) if Function fails or not found?
-              // No, let's trust the error. 
-              // BUT, if the user hasn't deployed the function, this will block them.
-              // I will leave the old method as a fallback only if status is 404
-              if (error.code === 'FUNCTION_NOT_FOUND' || error.status === 404) {
-                   addLog(`⚠️ Edge Function not found. Falling back to SQL RPC...`);
-                   const userId = await createUserMutation.mutateAsync({
-                        email: row.email,
-                        password: row.password,
-                        fullName: row.name,
-                        role: row.role
-                   });
-                   
-                   // Handle student creation manually if fallback used
-                   if (row.role === 'student' && userId) {
-                       await createStudentMutation.mutateAsync({
-                         id: studentId,
-                         name: row.name,
-                         email: row.email,
-                         user_id: userId,
-                         class_id: classId || undefined 
-                     } as any); 
-                   }
-                   addLog(`✅ Created user (SQL Fallback): ${row.email}`);
-              } else {
-                  throw new Error(error.message || "Failed to invoke admin function");
-              }
-            } else {
+            // Call SQL RPC directly (More reliable as we fixed the function)
+            // We skip the Edge Function to ensure consistent behavior with "Add User" dialog
+            try {
+               const userId = await createUserMutation.mutateAsync({
+                    email: row.email,
+                    password: row.password,
+                    fullName: row.name,
+                    role: row.role
+               });
+               
+               // Handle student creation if role is student
+               if (row.role === 'student' && userId) {
+                   await createStudentMutation.mutateAsync({
+                     id: studentId, // Use generated or provided ID
+                     name: row.name,
+                     email: row.email,
+                     user_id: userId,
+                     class_id: classId || undefined 
+                   } as any); 
+               }
+               
                addLog(`✅ Created user: ${row.email} (${row.role})`);
+            } catch (err: any) {
+               throw new Error(err.message || "Failed to create user via RPC");
             }
             successCount++;
 
