@@ -1346,6 +1346,29 @@ export function useUpdateAcademicYear() {
   });
 }
 
+// Delete academic year
+export function useDeleteAcademicYear() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (yearId: string) => {
+      const { error } = await supabase
+        .from('academic_years')
+        .delete()
+        .eq('id', yearId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.academicYears });
+      toast.success('ลบปีการศึกษาสำเร็จ');
+    },
+    onError: (error: Error) => {
+      toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+    },
+  });
+}
+
 
 
 // ============ HIERARCHICAL DATA STRUCTURE ============
