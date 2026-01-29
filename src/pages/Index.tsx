@@ -1,43 +1,18 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Header, ViewMode } from "@/components/layout/Header";
-import { TeacherDashboard } from "@/components/dashboard/TeacherDashboard";
+import { useEffect } from "react";
+import { Navigate } from "react-router-dom";
+
 import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
-import { ManagementDashboard } from "@/components/management/ManagementDashboard";
-import { ScoresView } from "@/components/scores/ScoresView";
-import UserManagement from "@/components/admin/UserManagement";
-import { mockStudents } from "@/lib/mockData";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
-
 import { useCurrentStudent } from "@/hooks/useSupabaseData";
 
 const Index = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { user, loading, isAdmin, isTeacher, isStudent, role } = useAuth();
-  const [viewMode, setViewMode] = useState<ViewMode>("dashboard");
   
   // Fetch current student data if applicable
   const { data: currentStudent, isLoading: isStudentLoading } = useCurrentStudent();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-    }
-  }, [user, loading, navigate]);
-
-  // Handle view mode change from navigation state
-  useEffect(() => {
-    if (location.state && location.state.view) {
-      setViewMode(location.state.view as ViewMode);
-      // Clear state to prevent sticking
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location, navigate]);
-
-  if (loading || !role || (isStudent && isStudentLoading)) {
+  if (loading || (isStudent && isStudentLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -49,111 +24,29 @@ const Index = () => {
   }
 
   if (!user) {
-    return null;
+    return <Navigate to="/auth" replace />;
   }
 
-  const renderContent = () => {
-    // Student can only see their dashboard
-    if (isStudent) {
-      if (currentStudent) {
-        return (
-          <motion.div
-            key="student"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <StudentDashboard student={currentStudent} />
-          </motion.div>
-        );
-      }
+  // Teacher and Admin: Redirect to Dashboard
+  if (isTeacher || isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Student View
+  if (isStudent) {
+    if (currentStudent) {
       return (
-        <div className="flex h-[50vh] items-center justify-center text-muted-foreground">
-          <p>Student profile not found. Please contact administrator.</p>
-        </div>
+        <StudentDashboard student={currentStudent} />
       );
     }
+    return (
+      <div className="flex h-[50vh] items-center justify-center text-muted-foreground">
+        <p>Student profile not found. Please contact administrator.</p>
+      </div>
+    );
+  }
 
-    // Admin and Teacher views
-    switch (viewMode) {
-      case "dashboard":
-        return (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <TeacherDashboard />
-          </motion.div>
-        );
-      case "scores":
-        return (
-          <motion.div
-            key="scores"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ScoresView />
-          </motion.div>
-        );
-      case "management":
-        return (
-          <motion.div
-            key="management"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ManagementDashboard />
-          </motion.div>
-        );
-      case "users":
-        return isAdmin ? (
-          <motion.div
-            key="users"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <UserManagement />
-          </motion.div>
-        ) : null;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="min-h-screen">
-      <Header
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
-      
-      <main className="container py-8">
-        <AnimatePresence mode="wait">
-          {renderContent()}
-        </AnimatePresence>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border/50 bg-card/80 backdrop-blur-sm py-6">
-        <div className="container text-center text-sm text-muted-foreground">
-          <p>แพลตฟอร์ม IDS E-Portfolio system</p>
-          <p className="mt-1 text-xs">
-            คุณเข้าสู่ระบบในฐานะ: {role === 'admin' ? 'ผู้ดูแลระบบ' : role === 'teacher' ? 'ครู' : 'นักเรียน'}
-          </p>
-        </div>
-      </footer>
-    </div>
-  );
+  return null;
 };
 
 export default Index;

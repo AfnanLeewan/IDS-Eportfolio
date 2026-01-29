@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface SubTopic {
@@ -23,152 +24,35 @@ interface ScoreBreakdownProps {
   className?: string;
 }
 
-export function ScoreBreakdown({ subjects, studentScores, className }: ScoreBreakdownProps) {
-  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
-
-  const toggleSubject = (subjectId: string) => {
-    const newExpanded = new Set(expandedSubjects);
-    if (newExpanded.has(subjectId)) {
-      newExpanded.delete(subjectId);
-    } else {
-      newExpanded.add(subjectId);
-    }
-    setExpandedSubjects(newExpanded);
-  };
-
-  const getGradeColor = (percentage: number): string => {
-    if (percentage >= 80) return "text-success";
-    if (percentage >= 60) return "text-warning";
-    return "text-destructive";
-  };
-
-  const getGradeBadge = (percentage: number): { label: string; className: string } => {
-    if (percentage >= 90) return { label: "A+", className: "bg-success/10 text-success" };
-    if (percentage >= 80) return { label: "A", className: "bg-success/10 text-success" };
-    if (percentage >= 70) return { label: "B", className: "bg-primary/10 text-primary" };
-    if (percentage >= 60) return { label: "C", className: "bg-warning/10 text-warning" };
-    if (percentage >= 50) return { label: "D", className: "bg-warning/10 text-warning" };
-    return { label: "F", className: "bg-destructive/10 text-destructive" };
-  };
+export function ScoreBreakdown({ className }: Partial<ScoreBreakdownProps>) {
+  const navigate = useNavigate();
 
   return (
-    <Card className={`shadow-card border-0 rounded-2xl ${className}`}>
+    <Card className={`shadow-card border-0 rounded-2xl ${className} hover:shadow-lg transition-all`}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">
-          Detailed Score Breakdown
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            คะแนนรายวิชา
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Click on a subject to view sub-topic scores
+          View a comprehensive matrix of your scores across all subjects and assessments.
         </p>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
-          {subjects.map((subject) => {
-            // Calculate Subject Score dynamically
-            let earned = 0;
-            let max = 0;
-            subject.subTopics.forEach(st => {
-               const scoreVal = studentScores.find(s => s.sub_topic_id === st.id)?.score || 0;
-               earned += scoreVal;
-               max += st.maxScore;
-            });
-            const percentage = max > 0 ? (earned / max) * 100 : 0;
-            
-            const isExpanded = expandedSubjects.has(subject.id);
-            const grade = getGradeBadge(percentage);
-
-            return (
-              <div
-                key={subject.id}
-                className="rounded-xl bg-muted/30 overflow-hidden"
-              >
-                <button
-                  onClick={() => toggleSubject(subject.id)}
-                  className="flex w-full items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      animate={{ rotate: isExpanded ? 90 : 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </motion.div>
-                    <div className="text-left">
-                      <p className="font-medium">{subject.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {subject.subTopics.length} sub-topics
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className={cn("font-bold", getGradeColor(percentage))}>
-                        {earned}/{max}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {percentage.toFixed(1)}%
-                      </p>
-                    </div>
-  
-                  </div>
-                </button>
-
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="border-t bg-muted/30 px-4 py-3">
-                        <div className="space-y-3">
-                          {subject.subTopics.map((subTopic) => {
-                            const score = studentScores.find(
-                              (s) => s.sub_topic_id === subTopic.id
-                            )?.score || 0;
-                            const stPercentage = subTopic.maxScore > 0 ? (score / subTopic.maxScore) * 100 : 0;
-
-                            return (
-                              <div
-                                key={subTopic.id}
-                                className="flex items-center gap-3"
-                              >
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="text-sm">{subTopic.name}</span>
-                                    <span className="text-sm font-medium">
-                                      {score}/{subTopic.maxScore}
-                                    </span>
-                                  </div>
-                                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                                    <motion.div
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${stPercentage}%` }}
-                                      transition={{ duration: 0.4 }}
-                                      className={cn(
-                                        "h-full rounded-full",
-                                        stPercentage >= 80
-                                          ? "bg-success"
-                                          : stPercentage >= 60
-                                          ? "bg-warning"
-                                          : "bg-destructive"
-                                      )}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
+        <div className="flex items-center justify-between bg-primary/5 p-4 rounded-xl border border-primary/10">
+           <div className="flex items-center gap-3">
+               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="h-5 w-5 rounded-sm bg-primary" />
+               </div>
+               <div>
+                  <p className="font-medium text-foreground">Complete Score Matrix</p>
+                  <p className="text-xs text-muted-foreground">Compare assessments & sub-topics</p>
+               </div>
+           </div>
+           
+           <Button onClick={() => navigate('/student/scores')}>
+              View Full Details
+              <ChevronRight className="ml-2 h-4 w-4" />
+           </Button>
         </div>
       </CardContent>
     </Card>

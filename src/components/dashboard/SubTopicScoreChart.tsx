@@ -102,13 +102,13 @@ export function SubTopicScoreChart({
           <div className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
             <CardTitle className="text-lg font-semibold">
-              {subject.name} - คะแนนหัวข้อย่อย
+              {subject.name} - คะแนนบทเรียน
             </CardTitle>
           </div>
           <p className="text-sm text-muted-foreground">
             {student 
               ? "ผลงานของคุณ เทียบกับ ค่าเฉลี่ยห้อง และ ท็อป 10%" 
-              : "ค่าเฉลี่ยห้อง และ ท็อป 10% แยกตามหัวข้อย่อย"}
+              : "ค่าเฉลี่ยห้อง และ ท็อป 10% แยกตามบทเรียน"}
           </p>
         </CardHeader>
         <CardContent>

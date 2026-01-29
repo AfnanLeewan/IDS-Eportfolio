@@ -899,4 +899,4 @@ export function useRealtimeScores(classId: string | null, enabled: boolean = tru
 7. **Fix #7** - Inline Rollback (15 minutes) - **HIGH**
 8. **Fix #8** - Real-Time Conflicts (10 minutes) - **MEDIUM**
 
-**Total estimated time:** 80 minutes (1.5 hours) for critical fixes
+**คะแนนรวม estimated time:** 80 minutes (1.5 hours) for critical fixes

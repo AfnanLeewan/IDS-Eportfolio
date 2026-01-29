@@ -140,13 +140,13 @@ export function SubjectManagement() {
   };
 
   const handleDeleteSubject = (subjectId: string, subjectName: string) => {
-    if (!confirm(`ลบวิชา "${subjectName}" หรือไม่? การลบจะลบหัวข้อและคะแนนทั้งหมด`)) return;
+    if (!confirm(`ลบวิชา "${subjectName}" หรือไม่? การลบจะลบบทเรียนและคะแนนทั้งหมด`)) return;
     
     deleteSubject.mutate(subjectId);
   };
 
   const handleDeleteSubTopic = (subTopicId: string, subTopicName: string) => {
-    if (!confirm(`คุณแน่ใจหรือไม่ที่จะลบหัวข้อ "${subTopicName}"? การลบจะลบคะแนนทั้งหมดของหัวข้อนี้`)) {
+    if (!confirm(`คุณแน่ใจหรือไม่ที่จะลบบทเรียน "${subTopicName}"? การลบจะลบคะแนนทั้งหมดของบทเรียนนี้`)) {
       return;
     }
 
@@ -192,9 +192,9 @@ export function SubjectManagement() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
         <div>
-          <h3 className="text-2xl font-bold">วิชาและหัวข้อ</h3>
+          <h3 className="text-2xl font-bold">วิชาและบทเรียน</h3>
           <p className="text-muted-foreground">
-            จัดการวิชาและหัวข้อของโครงการต่างๆ
+            จัดการวิชาและบทเรียนของโครงการต่างๆ
           </p>
         </div>
 
@@ -410,7 +410,7 @@ export function SubjectManagement() {
                                   <div>
                                     <p className="font-medium">{subTopic.name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                      Max Score: {subTopic.max_score}
+                                      คะแนนเต็ม: {subTopic.max_score}
                                     </p>
                                   </div>
                                   <Button

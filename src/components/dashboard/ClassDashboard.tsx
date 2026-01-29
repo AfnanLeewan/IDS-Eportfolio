@@ -266,7 +266,7 @@ export function ClassDashboard({ classGroup }: ClassDashboardProps) {
                       {subject.code}
                     </th>
                   ))}
-                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">Total</th>
+                  <th className="text-center py-3 px-2 font-medium text-muted-foreground">คะแนนรวม</th>
                 </tr>
               </thead>
               <tbody>

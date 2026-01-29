@@ -403,7 +403,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
                         <SelectValue placeholder="เลือกการสอบ" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="latest">ล่าสุด (Latest)</SelectItem>
+                        <SelectItem value="latest">ล่าสุด  </SelectItem>
                          {assessments.map((a: any) => (
                           <SelectItem key={a.id} value={a.id}>
                             {a.title}
@@ -435,7 +435,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
              <TrendingUp className="h-5 w-5 text-primary" />
-             <h3 className="text-lg font-semibold">ภาพรวมคะแนน (Score Trends)</h3>
+             <h3 className="text-lg font-semibold">ภาพรวมคะแนน </h3>
         </div>
         {selectedProgramId && (
             <ScoreTrendDashboard 
@@ -456,7 +456,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
         <Card className="shadow-card border-0 rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-semibold">
-              การวิเคราะห์ผลการเรียน
+              วิเคราะห์ผลการเรียนรายวิชา
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -538,7 +538,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
       {/* Sub-topic Score Comparison with Subject Filter */}
       {/* Sub-topic Score Comparison and Analysis Grid */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">การวิเคราะห์หัวข้อย่อย</h3>
+        <h3 className="text-lg font-semibold">การวิเคราะห์บทเรียน</h3>
         <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
             {/* Left: Score Chart */}
             <div className="space-y-4 h-full flex flex-col">
@@ -580,10 +580,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
       </div>
 
       {/* Detailed Breakdown */}
-      <ScoreBreakdown 
-        subjects={subjects} 
-        studentScores={scores} 
-      />
+
     </div>
   );
 }

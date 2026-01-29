@@ -223,7 +223,7 @@ Priority 3 - Nice to have improvements
 └─ Fix #12: Error boundaries                  [10 min]
 ```
 
-**Total Effort:** 80-100 developer hours  
+**คะแนนรวม Effort:** 80-100 developer hours  
 **Recommended Timeline:** 2-3 sprints
 
 ---
@@ -375,7 +375,7 @@ QA Review Package/
 | Quick Reference | 17 KB | 3,800 | 12 | 8 | 2+ |
 | Code Fixes | 25 KB | 4,200 | 8 | 0 | 50+ |
 | Summary | 12 KB | 2,500 | 12 | 1 | 0 |
-| **Total** | **81 KB** | **16,700** | **12** | **9** | **60+** |
+| **คะแนนรวม** | **81 KB** | **16,700** | **12** | **9** | **60+** |
 
 ---
 
@@ -398,7 +398,7 @@ QA Review Package/
 | **Team Size** | 1 Senior Lead + QA Engineer |
 | **Review Depth** | Full-stack (Frontend to Database) |
 | **Issues Found** | 12 (7 HIGH, 3 MEDIUM, 2 LOW-MEDIUM) |
-| **Total Effort to Fix** | 80-100 hours |
+| **คะแนนรวม Effort to Fix** | 80-100 hours |
 | **Recommended Timeline** | 2-3 development sprints |
 | **Breaking Changes** | None (backward compatible) |
 | **Database Changes** | 1 migration (RLS policy + fields) |

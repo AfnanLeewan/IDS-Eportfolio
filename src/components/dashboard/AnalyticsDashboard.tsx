@@ -37,6 +37,7 @@ import { SubTopicGapChart } from "./SubTopicGapChart";
 import { SubTopicScoreChart } from "./SubTopicScoreChart";
 import { StudentDeepDive } from "./StudentDeepDive";
 import { SubTopicComparisonChart } from "@/components/scores/SubTopicComparisonChart";
+import { StudentSelector } from "./StudentSelector";
 import { ScoreTrendDashboard } from "./ScoreTrendDashboard";
 import { YearSelector } from "@/components/common/YearSelector";
 import { 
@@ -310,7 +311,7 @@ export function AnalyticsDashboard({
                     <SelectValue placeholder="เลือกการสอบ" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="latest">ล่าสุด (Latest)</SelectItem>
+                    <SelectItem value="latest">ล่าสุด  </SelectItem>
                     {assessments.map((a: any) => (
                       <SelectItem key={a.id} value={a.id}>
                         {a.title}
@@ -374,14 +375,13 @@ export function AnalyticsDashboard({
                     className="flex-1"
                     onClick={() => { setActiveLevel(2); setSelectedStudent(null); }}
                   >
-                    หัวข้อย่อย
+                    บทเรียน
                   </Button>
                   <Button
                     variant={activeLevel === 3 ? "default" : "outline"}
                     size="sm"
                     className="flex-1"
                     onClick={() => setActiveLevel(3)}
-                    disabled={!selectedStudent}
                   >
                     นักเรียน
                   </Button>
@@ -486,8 +486,8 @@ export function AnalyticsDashboard({
               {/* Spider Web / Radar Chart */}
               <SubjectRadarChart
                 data={radarData}
-                studentName={selectedClass === "all" ? "School Average" : classesFromDB.find((c: any) => c.class_id === selectedClass)?.class_name || "Class Average"}
-                className="Grade Average"
+                studentName={selectedClass === "all" ? "ค่าเฉลี่ยโรงเรียน" : classesFromDB.find((c: any) => c.class_id === selectedClass)?.class_name || "ค่าเฉลี่ยห้องเรียน"}
+                className="ค่าเฉลี่ยระดับชั้น"
               />
 
               {/* Box Plot for Class Comparison */}
@@ -649,10 +649,10 @@ export function AnalyticsDashboard({
                   variant="ghost"
                   size="sm"
                   className="gap-2"
-                  onClick={handleBackFromStudent}
+                  onClick={() => setSelectedStudent(null)}
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  กลับไปวิเคราะห์หัวข้อย่อย
+                  กลับไปหน้ารายชื่อ
                 </Button>
                 <StudentDeepDive
                   student={selectedStudent}
@@ -663,15 +663,11 @@ export function AnalyticsDashboard({
                 />
               </>
             ) : (
-              <Card className="shadow-card border-0 rounded-2xl">
-                <CardContent className="py-12 text-center">
-                  <User className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">เลือกนักเรียน</h3>
-                  <p className="text-muted-foreground">
-                    คลิกที่นักเรียนจากหน้าภาพรวมหรือการวิเคราะห์หัวข้อย่อยเพื่อดูผลการเรียนโดยละเอียด
-                  </p>
-                </CardContent>
-              </Card>
+               <StudentSelector 
+                  students={rankedStudents} // Using rankedStudents as it has totalScore
+                  classes={classesFromDB}
+                  onSelect={handleStudentClick}
+               />
             )}
           </motion.div>
         )}

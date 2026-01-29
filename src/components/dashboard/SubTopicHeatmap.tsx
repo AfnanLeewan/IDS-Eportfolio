@@ -92,15 +92,15 @@ export function SubTopicHeatmap({ students, selectedSubject, onStudentClick, sub
             <div>
               <CardTitle className="text-lg font-semibold flex items-center gap-2">
                 <Grid3X3 className="h-5 w-5 text-primary" />
-                Sub-topic Mastery Heatmap
+                ตารางแสดงผลการเรียนรายบทเรียน
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Click on a row to view student details • Red columns indicate topics needing class-wide review
+                คลิกที่แถวเพื่อดูรายละเอียดนักเรียน • คอลัมน์สีแดงแสดงหัวข้อที่ต้องทบทวนทั้งชั้นเรียน
               </p>
             </div>
             {problematicSubTopics.length > 0 && (
               <Badge variant="destructive" className="gap-1">
-                {problematicSubTopics.length} topics below 50%
+                {problematicSubTopics.length} บทเรียนที่ต้องทบทวนทั้งชั้นเรียน
               </Badge>
             )}
           </div>
@@ -111,7 +111,7 @@ export function SubTopicHeatmap({ students, selectedSubject, onStudentClick, sub
               {/* Header row with sub-topic names */}
               <div className="flex border-b border-border/50 pb-2 mb-2">
                 <div className="w-40 shrink-0 font-medium text-sm text-muted-foreground pr-2">
-                  Student
+                  นักเรียน
                 </div>
                 {heatmapData.subTopics.map((subTopic, index) => {
                   const colAvg = heatmapData.columnAverages[index].average;
@@ -134,7 +134,7 @@ export function SubTopicHeatmap({ students, selectedSubject, onStudentClick, sub
                   );
                 })}
                 <div className="w-20 shrink-0 text-center font-medium text-sm text-muted-foreground">
-                  Avg
+                  ค่าเฉลี่ย
                 </div>
               </div>
 
@@ -196,7 +196,7 @@ export function SubTopicHeatmap({ students, selectedSubject, onStudentClick, sub
           {/* Legend */}
           <div className="mt-6 pt-4 border-t border-border/50">
             <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
-              <span className="text-muted-foreground">Score Legend:</span>
+              <span className="text-muted-foreground">คำอธิบายสัญลักษณ์:</span>
               <div className="flex items-center gap-1">
                 <div className="w-4 h-4 rounded bg-destructive"></div>
                 <span>&lt;30%</span>

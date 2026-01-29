@@ -978,7 +978,7 @@ export function useCreateSubTopic() {
       queryClient.invalidateQueries({ queryKey: queryKeys.subTopics });
       queryClient.invalidateQueries({ queryKey: queryKeys.subjects });
       queryClient.invalidateQueries({ queryKey: ['subjects_with_topics'] });
-      toast.success('เพิ่มหัวข้อย่อยสำเร็จ');
+      toast.success('เพิ่มบทเรียนสำเร็จ');
     },
     onError: (error: Error) => {
       toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
@@ -1010,7 +1010,7 @@ export function useUpdateSubTopic() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.subTopics });
       queryClient.invalidateQueries({ queryKey: ['subjects_with_topics'] });
-      toast.success('อัปเดตหัวข้อย่อยสำเร็จ');
+      toast.success('อัปเดตบทเรียนสำเร็จ');
     },
     onError: (error: Error) => {
       toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
@@ -1034,7 +1034,7 @@ export function useDeleteSubTopic() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.subTopics });
       queryClient.invalidateQueries({ queryKey: ['subjects_with_topics'] });
-      toast.success('ลบหัวข้อย่อยสำเร็จ');
+      toast.success('ลบบทเรียนสำเร็จ');
     },
     onError: (error: Error) => {
       toast.error(`เกิดข้อผิดพลาด: ${error.message}`);

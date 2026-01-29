@@ -402,7 +402,7 @@ export function ScoreUploadDialog({
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground">Max Score</Label>
+                          <Label className="text-xs text-muted-foreground">คะแนนเต็ม</Label>
                           <Input 
                             type="number" 
                             value={lessonMaxScores[lesson]} 

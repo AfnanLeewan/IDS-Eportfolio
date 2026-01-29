@@ -102,7 +102,7 @@ export function ScoreTrendDashboard({ programId, studentId }: ScoreTrendDashboar
                      }
                      // Always add max score if it's part of the curriculum? 
                      // Or only if student has a score? 
-                     // Usually for "Trend", we want vs Total Possible.
+                     // Usually for "Trend", we want vs คะแนนรวม Possible.
                      maxScore += st.max_score || 0;
                 });
             });
@@ -117,7 +117,7 @@ export function ScoreTrendDashboard({ programId, studentId }: ScoreTrendDashboar
                     score += s.score || 0;
                 }
             });
-            // Calculate Max Score from metadata
+            // Calculate คะแนนเต็ม from metadata
             subTopics.forEach((st: any) => {
                 maxScore += st.max_score || 0;
             });
@@ -201,7 +201,7 @@ export function ScoreTrendDashboard({ programId, studentId }: ScoreTrendDashboar
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            <CardTitle>แนวโน้มคะแนน (Score Trends)</CardTitle>
+            <CardTitle>แนวโน้มคะแนน </CardTitle>
           </div>
           <div className="flex gap-2">
             {!studentId && (
@@ -223,7 +223,7 @@ export function ScoreTrendDashboard({ programId, studentId }: ScoreTrendDashboar
                   <SelectValue placeholder="เลือกวิชา" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">รวมทุกวิชา (All Subjects)</SelectItem>
+                  <SelectItem value="all">รวมทุกวิชา  </SelectItem>
                   {subjects.map((s: any) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -232,10 +232,10 @@ export function ScoreTrendDashboard({ programId, studentId }: ScoreTrendDashboar
 
               <Select value={selectedSubTopicId} onValueChange={setSelectedSubTopicId} disabled={selectedSubjectId === 'all' || !selectedSubjectId}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="หัวข้อ" />
+                  <SelectValue placeholder="บทเรียน" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="total">รวมทุกหัวข้อ (Total)</SelectItem>
+                  <SelectItem value="total">รวมทุกบทเรียน  </SelectItem>
                   {subTopics.map((st: any) => (
                     <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>
                   ))}
@@ -253,7 +253,7 @@ export function ScoreTrendDashboard({ programId, studentId }: ScoreTrendDashboar
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
-                  <YAxis domain={[0, 100]} label={{ value: '% Score', angle: -90, position: 'insideLeft' }} />
+                  <YAxis domain={[0, 100]} label={{ value: '% คะแนน', angle: -90, position: 'insideLeft' }} />
                   <Tooltip />
                   <Legend />
                   {!studentId && (

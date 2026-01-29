@@ -37,7 +37,7 @@ export function SubjectRadarChart({
       <Card className={`shadow-card border-0 rounded-2xl ${className}`}>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-semibold">
-            Subject Balance
+            เปรียบเทียบรายวิชา
             {studentName && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">
                 — {studentName}
@@ -65,7 +65,7 @@ export function SubjectRadarChart({
                   tickCount={5}
                 />
                 <Radar
-                  name="Your Score"
+                  name="คะแนน"
                   dataKey="studentScore"
                   stroke="#10B981"
                   fill="#10B981"

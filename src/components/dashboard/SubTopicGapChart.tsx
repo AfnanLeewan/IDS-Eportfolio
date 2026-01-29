@@ -93,10 +93,10 @@ export function SubTopicGapChart({ students, selectedSubject, subjects = [] }: S
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold flex items-center gap-2">
               <BarChart2 className="h-5 w-5 text-primary" />
-              Sub-topic Gap Analysis
+              ระยะห่างของคะแนนรายหัวข้อ
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Topics sorted by average score - focus on the weakest areas first
+              เรียงลำดับตามคะแนนเฉลี่ย
             </p>
           </CardHeader>
           <CardContent>

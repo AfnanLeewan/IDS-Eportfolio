@@ -227,11 +227,11 @@ This document summarizes the complete backend and database implementation for th
 
 ## 📊 Database Statistics
 
-**Total Tables:** 9 (7 new + 2 existing auth tables)
-**Total Indexes:** 15+
-**Total Functions:** 7
-**Total RLS Policies:** 20+
-**Total Triggers:** 8
+**คะแนนรวม Tables:** 9 (7 new + 2 existing auth tables)
+**คะแนนรวม Indexes:** 15+
+**คะแนนรวม Functions:** 7
+**คะแนนรวม RLS Policies:** 20+
+**คะแนนรวม Triggers:** 8
 **Materialized Views:** 1
 
 ---

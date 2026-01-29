@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+
 import { GraduationCap, User, Users, Search, Bell, ChevronDown, Settings, LayoutDashboard, FileSpreadsheet, LogOut, Shield, Key, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,16 +17,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type ViewMode = "dashboard" | "management" | "scores" | "users";
-
-interface HeaderProps {
-  viewMode?: ViewMode;
-  onViewModeChange?: (mode: ViewMode) => void;
-}
-
-export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps) {
+export function Header() {
   const { profile, role, signOut, isAdmin, isTeacher } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isActive = (path: string) => location.pathname === path;
+
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -81,10 +77,7 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
   };
 
   return (
-    <motion.header
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+    <header
       className="sticky top-0 z-50 w-full border-b border-secondary/80 bg-secondary shadow-card"
     >
     
@@ -107,15 +100,15 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
 
         <div className="flex items-center gap-4">
           {/* View Mode Toggle (Admin and Teacher) */}
-          {(isAdmin || isTeacher) && onViewModeChange && (
+          {(isAdmin || isTeacher) && (
             <div className="flex rounded-xl bg-white/10 p-1 border border-white/20">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onViewModeChange("dashboard")}
+                onClick={() => navigate("/dashboard")}
                 className={cn(
                   "relative gap-2 px-3 rounded-lg transition-all font-medium",
-                  viewMode === "dashboard"
+                  isActive("/dashboard")
                     ? "bg-primary text-white shadow-sm hover:bg-primary/90"
                     : "text-white/80 hover:text-white hover:bg-white/10"
                 )}
@@ -126,10 +119,10 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onViewModeChange("scores")}
+                onClick={() => navigate("/scores")}
                 className={cn(
                   "relative gap-2 px-3 rounded-lg transition-all font-medium",
-                  viewMode === "scores"
+                  isActive("/scores")
                     ? "bg-primary text-white shadow-sm hover:bg-primary/90"
                     : "text-white/80 hover:text-white hover:bg-white/10"
                 )}
@@ -140,10 +133,10 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onViewModeChange("management")}
+                onClick={() => navigate("/management")}
                 className={cn(
                   "relative gap-2 px-3 rounded-lg transition-all font-medium",
-                  viewMode === "management"
+                  isActive("/management")
                     ? "bg-primary text-white shadow-sm hover:bg-primary/90"
                     : "text-white/80 hover:text-white hover:bg-white/10"
                 )}
@@ -155,10 +148,10 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onViewModeChange("users")}
+                  onClick={() => navigate("/users")}
                   className={cn(
                     "relative gap-2 px-3 rounded-lg transition-all font-medium",
-                    viewMode === "users"
+                    isActive("/users")
                       ? "bg-primary text-white shadow-sm hover:bg-primary/90"
                       : "text-white/80 hover:text-white hover:bg-white/10"
                   )}
@@ -168,6 +161,40 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
                 </Button>
               )}
             </div>
+          )}
+          
+          {/* View Mode Toggle (Student) */}
+          {(!isAdmin && !isTeacher) && (
+             <div className="flex rounded-xl bg-white/10 p-1 border border-white/20">
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 onClick={() => navigate("/")}
+                 className={cn(
+                   "relative gap-2 px-3 rounded-lg transition-all font-medium",
+                   isActive("/")
+                     ? "bg-primary text-white shadow-sm hover:bg-primary/90"
+                     : "text-white/80 hover:text-white hover:bg-white/10"
+                 )}
+               >
+                 <LayoutDashboard className="h-4 w-4" />
+                 <span className="hidden sm:inline">แดชบอร์ด</span>
+               </Button>
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 onClick={() => navigate("/student/scores")}
+                 className={cn(
+                   "relative gap-2 px-3 rounded-lg transition-all font-medium",
+                   isActive("/student/scores")
+                     ? "bg-primary text-white shadow-sm hover:bg-primary/90"
+                     : "text-white/80 hover:text-white hover:bg-white/10"
+                 )}
+               >
+                 <FileSpreadsheet className="h-4 w-4" />
+                 <span className="hidden sm:inline">คะแนน</span>
+               </Button>
+             </div>
           )}
 
           {/* Role Badge */}
@@ -271,6 +298,6 @@ export function Header({ viewMode = "dashboard", onViewModeChange }: HeaderProps
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </motion.header>
+    </header>
   );
 }

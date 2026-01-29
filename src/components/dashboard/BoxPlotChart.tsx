@@ -123,10 +123,10 @@ export function BoxPlotChart({ selectedSubject, selectedClass, students, classes
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
-            Class Comparison - {subjectName}
+            Class เปรียบเทียบผลคะแนนระหว่างห้องเรียน - {subjectName}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Box & Whisker plot showing score distribution per class
+            Box & Whisker plot แสดงการกระจายตัวของคะแนนในแต่ละห้องเรียน
           </p>
         </CardHeader>
         <CardContent>

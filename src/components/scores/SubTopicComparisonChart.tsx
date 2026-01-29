@@ -124,9 +124,9 @@ export function SubTopicComparisonChart({
               <BarChart3 className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-lg">เปรียบเทียบคะแนนหัวข้อย่อย</CardTitle>
+              <CardTitle className="text-lg">เปรียบเทียบคะแนนบทเรียน</CardTitle>
               <p className="text-sm text-muted-foreground">
-                คะแนนเฉลี่ยแยกตามหัวข้อย่อยของวิชาที่เลือก
+                คะแนนเฉลี่ยแยกตามบทเรียนของวิชาที่เลือก
               </p>
             </div>
           </div>

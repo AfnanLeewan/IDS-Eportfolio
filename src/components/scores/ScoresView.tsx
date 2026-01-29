@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   ChevronDown, 
@@ -98,6 +99,7 @@ const calculateSubjectScore = (student: Student, subject: Subject) => {
 };
 
 export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) {
+  const navigate = useNavigate();
   // Permissions
   const { user, role } = useAuth();
   const isTeacher = role === 'teacher';
@@ -311,19 +313,7 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
     return "text-red-500";
   };
 
-  const getScoreBadge = (percentage: number) => {
-    if (percentage >= 80) return { label: "Excellent", className: "bg-emerald-100 text-emerald-700" };
-    if (percentage >= 70) return { label: "Good", className: "bg-blue-100 text-blue-700" };
-    if (percentage >= 60) return { label: "Fair", className: "bg-amber-100 text-amber-700" };
-    return { label: "Needs Work", className: "bg-red-100 text-red-700" };
-  };
 
-  const getTrendIcon = (studentScore: number, classAverage: number) => {
-    const diff = studentScore - classAverage;
-    if (diff > 5) return <TrendingUp className="h-4 w-4 text-emerald-500" />;
-    if (diff < -5) return <TrendingDown className="h-4 w-4 text-red-500" />;
-    return <Minus className="h-4 w-4 text-muted-foreground" />;
-  };
 
   // CRUD handlers
   const handleEditClick = (student: Student, subject: Subject) => {
@@ -484,7 +474,7 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
       {/* Filters */}
       <Card className="border-0 shadow-card">
         <CardContent className="pt-6">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 items-center">
             {/* Program Selector - NEW! */}
             <div className="flex items-center gap-3">
               <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
@@ -512,7 +502,7 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
                   <SelectValue placeholder="เลือกการสอบ" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="latest">ล่าสุด (Latest)</SelectItem>
+                  <SelectItem value="latest">ล่าสุด  </SelectItem>
                   {assessments.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>
                       {a.title}
@@ -536,25 +526,10 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
                 
                 
                 </div>
-
-            </div>
-
-            {/* Assessment Selector - NEW! */}
-            
-            
-            {/* Search and Filters */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="ค้นหาชื่อหรือรหัสนักเรียน..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-muted/50 py-2.5 pl-10 pr-4 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                />
-              </div>
-              <div className="flex gap-3">
+              <div className="flex items-center gap-3">
+                                               <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                ห้องเรียน:
+              </label>
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
                   <SelectTrigger className="w-[160px] rounded-xl">
                     <SelectValue placeholder="เลือกห้องเรียน" />
@@ -564,19 +539,6 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
                     {classesFromDB.map((cls: any) => (
                       <SelectItem key={cls.class_id} value={cls.class_id}>
                         {cls.class_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                  <SelectTrigger className="w-[180px] rounded-xl">
-                    <SelectValue placeholder="เลือกวิชา" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">ทุกวิชา</SelectItem>
-                    {subjectsFromDB.map((subject: any) => (
-                      <SelectItem key={subject.id} value={subject.id}>
-                        {subject.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -630,23 +592,61 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
 
       {/* Scores by Subject */}
       <TooltipProvider>
-        {subjects.map((subject) => (
-          <SubjectScoreTable
-            key={subject.id}
-            subject={subject}
-            students={filteredStudents}
-            classes={classesFromDB}
-            isExpanded={expandedSubjects.includes(subject.id)}
-            onToggle={() => toggleSubject(subject.id)}
-            getScoreColor={getScoreColor}
-            getScoreBadge={getScoreBadge}
-            getTrendIcon={getTrendIcon}
-            onEdit={canEdit ? handleEditClick : undefined}
-            cellLoadingState={cellLoadingState} // Passed prop
-            onInlineScoreUpdate={canEdit ? handleInlineScoreUpdate : undefined}
-            calculateSubjectScore={calculateSubjectScore}
-          />
-        ))}
+        {subjects.map((subject) => {
+          // Calculate quick stats for the card
+          const subjectStats = filteredStudents.length > 0 ? (() => {
+             const percentages = filteredStudents.map(s => calculateSubjectScore(s, subject).percentage);
+             return {
+               average: percentages.reduce((a, b) => a + b, 0) / percentages.length,
+               count: filteredStudents.length
+             };
+          })() : { average: 0, count: 0 };
+          
+          return (
+            <motion.div
+              key={subject.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card 
+                className="border-0 shadow-card hover:shadow-lg transition-all cursor-pointer group"
+                onClick={() => {
+                   const params = new URLSearchParams();
+                   if (selectedProgramId) params.set('programId', selectedProgramId);
+                   if (selectedClass) params.set('classId', selectedClass);
+                   if (selectedAssessmentId) params.set('assessmentId', selectedAssessmentId);
+                   if (activeYear) params.set('year', activeYear.toString());
+                   
+                   navigate(`/scores/${subject.id}?${params.toString()}`);
+                }}
+              >
+                <CardContent className="p-6 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                     <div className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <span className="text-lg font-bold text-primary-foreground">{subject.code}</span>
+                     </div>
+                     <div>
+                        <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">{subject.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                           {subject.subTopics.length} บทเรียน • นักเรียน {subjectStats.count} คน
+                        </p>
+                     </div>
+                  </div>
+                  
+                  <div className="text-right">
+                     <p className="text-sm text-muted-foreground">ค่าเฉลี่ย</p>
+                     <p className={cn("text-2xl font-bold", getScoreColor(subjectStats.average))}>
+                        {subjectStats.average.toFixed(1)}%
+                     </p>
+                  </div>
+                  
+                  <ChevronDown className="-rotate-90 text-muted-foreground" />
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
       </TooltipProvider>
 
       {/* CRUD Dialogs */}
@@ -661,278 +661,4 @@ export function ScoresView({ students: initialStudents = [] }: ScoresViewProps) 
   );
 }
 
-interface SubjectScoreTableProps {
-  subject: Subject;
-  students: Student[];
-  classes: any[];
-  isExpanded: boolean;
-  onToggle: () => void;
-  getScoreColor: (percentage: number) => string;
-  getScoreBadge: (percentage: number) => { label: string; className: string };
-  getTrendIcon: (studentScore: number, classAverage: number) => React.ReactNode;
 
-  onEdit?: (student: Student, subject: Subject) => void;
-  cellLoadingState: Record<string, boolean>; // Added prop
-  onInlineScoreUpdate?: (studentId: string, subTopicId: string, newScore: number) => void;
-  calculateSubjectScore: (student: Student, subject: Subject) => { score: number; maxScore: number; percentage: number };
-}
-
-function SubjectScoreTable({
-  subject,
-  students,
-  classes,
-  isExpanded,
-  onToggle,
-  getScoreColor,
-  getScoreBadge,
-  getTrendIcon,
-  onEdit,
-  cellLoadingState, // Added prop
-  onInlineScoreUpdate,
-  calculateSubjectScore,
-}: SubjectScoreTableProps) {
-  const [editingCell, setEditingCell] = useState<{ studentId: string; subTopicId: string } | null>(null);
-  const [editValue, setEditValue] = useState<string>("");
-  const inputRef = useRef<HTMLInputElement>(null);
-  const cellKey = (sid: string, stid: string) => `${sid}-${stid}`;
-
-  // Calculate subject statistics
-  const subjectStats = useMemo(() => {
-    if (students.length === 0) {
-      return { average: 0, highest: 0, lowest: 0, totalStudents: 0 };
-    }
-    
-    // Use the passed helper instead of getSubjectScore
-    const percentages = students.map(s => calculateSubjectScore(s, subject).percentage);
-    const average = percentages.reduce((acc, p) => acc + p, 0) / percentages.length;
-    const highest = Math.max(...percentages);
-    const lowest = Math.min(...percentages);
-    
-    return {
-      average,
-      highest,
-      lowest,
-      totalStudents: students.length,
-    };
-  }, [students, subject, calculateSubjectScore]);
-
-  const subjectAverage = subjectStats.average;
-
-  useEffect(() => {
-    if (editingCell && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [editingCell]);
-
-  const handleDoubleClick = (studentId: string, subTopicId: string, currentScore: number) => {
-    setEditingCell({ studentId, subTopicId });
-    setEditValue(currentScore.toString());
-  };
-
-  const handleSaveInline = (maxScore: number) => {
-    if (!editingCell || !onInlineScoreUpdate) return;
-    const numValue = parseInt(editValue) || 0;
-    const clampedValue = Math.max(0, Math.min(numValue, maxScore));
-    onInlineScoreUpdate(editingCell.studentId, editingCell.subTopicId, clampedValue);
-    setEditingCell(null);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingCell(null);
-    setEditValue("");
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent, maxScore: number) => {
-    if (e.key === "Enter") {
-      handleSaveInline(maxScore);
-    } else if (e.key === "Escape") {
-      handleCancelEdit();
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Collapsible open={isExpanded} onOpenChange={onToggle}>
-        <Card className="border-0 shadow-card overflow-hidden">
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center">
-                    <span className="text-lg font-bold text-primary-foreground">
-                      {subject.code}
-                    </span>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{subject.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                      {subject.subTopics.length} หัวข้อย่อย • ค่าเฉลี่ย: {subjectAverage.toFixed(1)}%
-                    </p>
-                  </div>
-                </div>
-                <ChevronDown
-                  className={cn(
-                    "h-5 w-5 text-muted-foreground transition-transform",
-                    isExpanded && "rotate-180"
-                  )}
-                />
-              </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="pt-0">
-              {/* Subject Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="p-4 rounded-xl bg-muted/50 border">
-                  <p className="text-sm text-muted-foreground mb-1">Total Students</p>
-                  <p className="text-2xl font-bold">{subjectStats.totalStudents}</p>
-                </div>
-                <div className="p-4 rounded-xl bg-muted/50 border">
-                  <p className="text-sm text-muted-foreground mb-1">Average Score</p>
-                  <p className={cn("text-2xl font-bold", getScoreColor(subjectStats.average))}>
-                    {subjectStats.average.toFixed(1)}%
-                  </p>
-                </div>
-                <div className="p-4 rounded-xl bg-muted/50 border">
-                  <p className="text-sm text-muted-foreground mb-1">Highest Score</p>
-                  <p className="text-2xl font-bold text-emerald-600">
-                    {subjectStats.highest.toFixed(1)}%
-                  </p>
-                </div>
-                <div className="p-4 rounded-xl bg-muted/50 border">
-                  <p className="text-sm text-muted-foreground mb-1">Lowest Score</p>
-                  <p className="text-2xl font-bold text-red-500">
-                    {subjectStats.lowest.toFixed(1)}%
-                  </p>
-                </div>
-              </div>
-              <div className="rounded-xl border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="font-semibold">Student ID</TableHead>
-                      <TableHead className="font-semibold">Name</TableHead>
-                      <TableHead className="font-semibold">Class</TableHead>
-                      {subject.subTopics.map((subTopic) => (
-                        <TableHead key={subTopic.id} className="text-center font-semibold">
-                          <div className="flex flex-col">
-                            <span className="text-xs">{subTopic.name}</span>
-                            <span className="text-[10px] text-muted-foreground">
-                              (max {subTopic.maxScore})
-                            </span>
-                          </div>
-                        </TableHead>
-                      ))}
-                      <TableHead className="text-center font-semibold">Total</TableHead>
-                      <TableHead className="text-center font-semibold">%</TableHead>
-                      <TableHead className="text-center font-semibold">vs Avg</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {students.map((student) => {
-                      // Use the passed helper
-                      const subjectScore = calculateSubjectScore(student, subject);
-                      // Use passed classes prop to lookup name
-                      const className = classes?.find(c => c.class_id === student.classId)?.class_name || student.classId;
-                      
-                      return (
-                        <TableRow key={student.id} className="hover:bg-muted/30">
-                          <TableCell className="font-mono text-sm">{student.id}</TableCell>
-                          <TableCell className="font-medium">{student.name}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="rounded-full">
-                              {className}
-                            </Badge>
-                          </TableCell>
-                          {subject.subTopics.map((subTopic) => {
-                            const scoreEntry = student.scores.find(
-                              (s) => s.subTopicId === subTopic.id
-                            );
-                            const score = scoreEntry?.score || 0;
-                            const percentage = (score / subTopic.maxScore) * 100;
-                            const isEditing = editingCell?.studentId === student.id && editingCell?.subTopicId === subTopic.id;
-                            const isLoading = cellLoadingState[cellKey(student.id, subTopic.id)];
-                            
-                            return (
-                              <TableCell
-                                key={subTopic.id}
-                                className={cn(
-                                  "text-center p-1",
-                                  isLoading && "opacity-60 pointer-events-none"
-                                )}
-                              >
-                                {isEditing ? (
-                                  <div className="flex items-center justify-center gap-1">
-                                    <input
-                                      ref={inputRef}
-                                      type="number"
-                                      min={0}
-                                      max={subTopic.maxScore}
-                                      value={editValue}
-                                      onChange={(e) => setEditValue(e.target.value)}
-                                      onKeyDown={(e) => handleKeyDown(e, subTopic.maxScore)}
-                                      onBlur={() => handleSaveInline(subTopic.maxScore)}
-                                      className="w-14 h-7 text-center text-sm border border-primary rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center justify-center">
-                                    {isLoading && (
-                                      <Loader2 className="h-4 w-4 inline-block animate-spin mr-2" />
-                                    )}
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span 
-                                          className={cn(
-                                            "font-medium cursor-pointer px-2 py-1 rounded hover:bg-muted transition-colors inline-block min-w-[32px]",
-                                            getScoreColor(percentage)
-                                          )}
-                                          onDoubleClick={() => handleDoubleClick(student.id, subTopic.id, score)}
-                                        >
-                                          {score}
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent>Double-click to edit</TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                )}
-                              </TableCell>
-                            );
-                          })}
-                          <TableCell
-                            className={cn(
-                              "text-center font-semibold",
-                              onEdit && "cursor-pointer hover:bg-muted/30 transition-colors"
-                            )}
-                            onClick={() => onEdit && onEdit(student, subject)}
-                          >
-                            <span className={cn(
-                              "font-medium",
-                              getScoreColor(subjectScore.percentage),
-                              !onEdit && "cursor-default"
-                            )}>
-                              {subjectScore.score}/{subjectScore.maxScore} ({subjectScore.percentage.toFixed(0)}%)
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {getTrendIcon(subjectScore.percentage, subjectAverage)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-
-        </Card>
-      </Collapsible>
-    </motion.div>
-  );
-}

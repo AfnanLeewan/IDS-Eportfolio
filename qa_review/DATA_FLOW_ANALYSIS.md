@@ -557,7 +557,7 @@ const { data: studentsWithScores = [] } = useClassScores(selectedClass);
 // 7. Component re-renders with new data
 // 8. Table updates with new scores
 
-// ⏱️ Total delay: 200-500ms (network + processing)
+// ⏱️ คะแนนรวม delay: 200-500ms (network + processing)
 // ❌ User sees UI lag
 ```
 

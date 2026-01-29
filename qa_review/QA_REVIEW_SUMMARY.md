@@ -91,7 +91,7 @@ This QA review package contains **4 comprehensive documents** analyzing the IDS 
 ✓ Fix #12: Error Boundaries            (10 min)
 ```
 
-**Total Effort:** ~6-8 developer hours  
+**คะแนนรวม Effort:** ~6-8 developer hours  
 **Recommended Timeline:** 2-3 sprints
 
 ---
@@ -372,7 +372,7 @@ Before deploying to production, ensure:
 |----------|-------|
 | Review Date | 2026-01-24 |
 | Stack | React + TypeScript + Supabase + React Query |
-| Total Issues | 12 |
+| คะแนนรวม Issues | 12 |
 | Critical Issues | 7 |
 | Estimated Fix Time | 80 minutes (Phase 1) |
 | Deployment Impact | Medium (DB migration required) |

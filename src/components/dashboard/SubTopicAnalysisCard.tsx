@@ -61,7 +61,7 @@ export function SubTopicAnalysisCard({ subjects, studentScores }: SubTopicAnalys
     <Card className="shadow-card border-0 rounded-2xl h-full">
       <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-lg font-semibold">
-          วิเคราะห์หัวข้อย่อย
+          วิเคราะห์ผลการเรียนรายบทเรียน
         </CardTitle>
         <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
           <SelectTrigger className="w-[140px] h-8 text-xs rounded-lg">
@@ -81,7 +81,7 @@ export function SubTopicAnalysisCard({ subjects, studentScores }: SubTopicAnalys
         <div>
           <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-success">
             <TrendingUp className="h-4 w-4" />
-            หัวข้อที่ทำได้ดีที่สุด
+            บทเรียนที่ทำได้ดีที่สุด
           </h4>
           <div className="space-y-2">
             {analysis.strengths.length > 0 ? (
@@ -114,7 +114,7 @@ export function SubTopicAnalysisCard({ subjects, studentScores }: SubTopicAnalys
         <div>
           <h4 className="mb-3 flex items-center gap-2 text-sm font-medium text-warning">
             <Target className="h-4 w-4" />
-            หัวข้อที่ควรปรับปรุง
+            บทเรียนที่ควรปรับปรุง
           </h4>
           <div className="space-y-2">
             {analysis.weaknesses.length > 0 ? (

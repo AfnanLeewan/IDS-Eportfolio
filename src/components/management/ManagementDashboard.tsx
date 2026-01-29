@@ -55,7 +55,7 @@ export function ManagementDashboard() {
             className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
           >
             <BookOpen className="h-4 w-4" />
-            วิชาและหัวข้อ
+            วิชาและบทเรียน
           </TabsTrigger>
           <TabsTrigger
             value="students"

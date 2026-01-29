@@ -61,7 +61,7 @@ BEGIN
     VALUES (
         NEW.student_id,
         'อัปเดตคะแนน: ' || v_subject_name,
-        'คะแนนหัวข้อ ' || v_sub_topic_name || ' ได้รับการ' || CASE WHEN TG_OP = 'INSERT' THEN 'บันทึก' ELSE 'แก้ไข' END || 'แล้ว',
+        'คะแนนบทเรียน ' || v_sub_topic_name || ' ได้รับการ' || CASE WHEN TG_OP = 'INSERT' THEN 'บันทึก' ELSE 'แก้ไข' END || 'แล้ว',
         'score_update',
         false
     );
