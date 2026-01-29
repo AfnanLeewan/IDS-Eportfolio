@@ -344,7 +344,7 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
           <div className="flex flex-col items-end gap-2">
 
             <div className="text-right">
-              <p className="text-3xl font-bold">{metrics.percentage.toFixed(0)}%</p>
+              <p className="text-2xl sm:text-3xl font-bold">{metrics.percentage.toFixed(0)}%</p>
               <p className="text-xs text-primary-foreground/70">คะแนนรวม ({studentPrograms.find((p: any) => p.program_id === selectedProgramId)?.program_name || "All"})</p>
             </div>
             {/* Removed Rank Display */}
@@ -359,27 +359,48 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
         className="bg-card p-4 rounded-2xl border shadow-sm space-y-4"
       >
         <div className="flex flex-col sm:flex-row gap-4 items-end sm:items-center justify-between">
-           <div className="flex flex-col sm:flex-row gap-4 w-full">
+            <div className="grid grid-cols-2 lg:flex lg:flex-row gap-3 w-full">
                {/* Year Selector */}
-               <div className="flex flex-col gap-1.5 w-full sm:w-auto">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+               <div className="col-span-1 flex flex-col gap-1.5 w-full">
+                    <label className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       ปีการศึกษา
                     </label>
                     <YearSelector 
                         value={selectedYear} 
                         onValueChange={setSelectedYear}
-                        className="w-full sm:w-[250px]"
+                        className="w-full text-xs sm:text-sm h-9"
                     />
                </div>
 
-               {/* Program Selector */}
+               {/* Assessment Selector */}
+               <div className="col-span-1 flex flex-col gap-1.5 w-full">
+                    <label className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      การสอบ
+                    </label>
+                    <Select value={selectedAssessmentId} onValueChange={setSelectedAssessmentId}>
+                      <SelectTrigger className="w-full text-xs sm:text-sm h-9">
+                        <SelectValue placeholder="เลือกการสอบ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="latest">ล่าสุด</SelectItem>
+                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                         {assessments.map((a: any) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+               </div>
+
+               {/* Program Selector - Full width on mobile if needed or auto */}
                {studentPrograms.length > 0 && (
-                   <div className="flex flex-col gap-1.5 w-full sm:w-auto flex-1">
-                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                   <div className="col-span-2 lg:col-span-1 flex flex-col gap-1.5 w-full flex-1">
+                        <label className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
                           หลักสูตร / โปรแกรม
                         </label>
                         <Select value={selectedProgramId} onValueChange={setSelectedProgramId}>
-                          <SelectTrigger className="w-full">
+                          <SelectTrigger className="w-full text-xs sm:text-sm h-9">
                             <SelectValue placeholder="เลือกโปรแกรม" />
                           </SelectTrigger>
                           <SelectContent>
@@ -392,26 +413,6 @@ export function StudentDashboard({ student }: StudentDashboardProps) {
                         </Select>
                    </div>
                )}
-
-               {/* Assessment Selector */}
-               <div className="flex flex-col gap-1.5 w-full sm:w-auto">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      การสอบ
-                    </label>
-                    <Select value={selectedAssessmentId} onValueChange={setSelectedAssessmentId}>
-                      <SelectTrigger className="w-full sm:w-[200px]">
-                        <SelectValue placeholder="เลือกการสอบ" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="latest">ล่าสุด  </SelectItem>
-                         {assessments.map((a: any) => (
-                          <SelectItem key={a.id} value={a.id}>
-                            {a.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-               </div>
            </div>
         </div>
       </motion.div>

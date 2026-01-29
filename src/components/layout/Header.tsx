@@ -91,14 +91,14 @@ export function Header() {
             />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white">IDS E-Portfolio System</h1>
+            <h1 className="hidden sm:block text-lg sm:text-xl font-bold tracking-tight text-white truncate">IDS E-Portfolio System</h1>
           </div>
         </div>
 
         {/* Search Bar */}
 
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* View Mode Toggle (Admin and Teacher) */}
           {(isAdmin || isTeacher) && (
             <div className="flex rounded-xl bg-white/10 p-1 border border-white/20">
@@ -114,7 +114,7 @@ export function Header() {
                 )}
               >
                 <LayoutDashboard className="h-4 w-4" />
-                <span className="hidden sm:inline">แดชบอร์ด</span>
+                <span className="hidden md:inline">แดชบอร์ด</span>
               </Button>
               <Button
                 variant="ghost"
@@ -128,7 +128,7 @@ export function Header() {
                 )}
               >
                 <FileSpreadsheet className="h-4 w-4" />
-                <span className="hidden sm:inline">คะแนน</span>
+                <span className="hidden md:inline">คะแนน</span>
               </Button>
               <Button
                 variant="ghost"
@@ -142,7 +142,7 @@ export function Header() {
                 )}
               >
                 <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">จัดการ</span>
+                <span className="hidden md:inline">จัดการ</span>
               </Button>
               {isAdmin && (
                 <Button
@@ -157,7 +157,7 @@ export function Header() {
                   )}
                 >
                   <Shield className="h-4 w-4" />
-                  <span className="hidden sm:inline">ผู้ใช้</span>
+                  <span className="hidden md:inline">ผู้ใช้</span>
                 </Button>
               )}
             </div>
@@ -178,7 +178,7 @@ export function Header() {
                  )}
                >
                  <LayoutDashboard className="h-4 w-4" />
-                 <span className="hidden sm:inline">แดชบอร์ด</span>
+                 <span className="hidden md:inline">แดชบอร์ด</span>
                </Button>
                <Button
                  variant="ghost"
@@ -192,13 +192,13 @@ export function Header() {
                  )}
                >
                  <FileSpreadsheet className="h-4 w-4" />
-                 <span className="hidden sm:inline">คะแนน</span>
+                 <span className="hidden md:inline">คะแนน</span>
                </Button>
              </div>
           )}
 
           {/* Role Badge */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-white">
             {getRoleIcon()}
             <span className="text-sm font-medium">{getRoleLabel()}</span>
           </div>
