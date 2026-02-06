@@ -1,0 +1,45 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment files (we use build args instead)
+.env
+.env.local
+.env.*.local
+
+# Tests
+coverage
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__
+
+# Documentation
+docs
+README.md
+*.md
+
+# Misc
+.DS_Store
+Thumbs.db
+bun.lockb
+
+# Supabase local config
+supabase/.temp
