@@ -176,7 +176,7 @@ const Auth = () => {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-foreground">IDS E-Portfolio System</h1>
-          <p className="text-muted-foreground mt-2">เข้าสู่ระบบเพื่อตรวจสอบและจัดการข้อมูลคะแนน</p>
+          <p className="text-muted-foreground mt-2">เข้าสู่ระบบเพื่อตรวจสอบและจัดการข้อมูลคะแนน |UAT 3030|</p>
         </div>
 
         <Card className="border-border/50 shadow-lg">
