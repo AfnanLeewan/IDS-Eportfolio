@@ -47,7 +47,7 @@ export function useExamPrograms() {
         .select('*')
         .eq('is_active', true)
         .order('name');
-      
+
       if (error) throw error;
       return data;
     },
@@ -64,11 +64,11 @@ export function useSubjects(programId?: string) {
         .from('subjects')
         .select('*')
         .order('display_order');
-      
+
       if (programId) {
         query = query.eq('program_id', programId);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data as any[];
@@ -86,11 +86,11 @@ export function useSubTopics(subjectId?: string) {
         .from('sub_topics')
         .select('*')
         .order('display_order');
-      
+
       if (subjectId) {
         query = query.eq('subject_id', subjectId);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data as any[];
@@ -111,7 +111,7 @@ export function useSubjectWithTopics(programId: string = 'pre-a-level') {
         `)
         .eq('program_id', programId)
         .order('display_order');
-      
+
       if (error) throw error;
       return data;
     },
@@ -125,7 +125,7 @@ export function useClassSubjects(classId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .rpc('get_class_subjects', { p_class_id: classId });
-      
+
       if (error) throw error;
       return data || [];
     },
@@ -160,7 +160,7 @@ export function useAssessments(programId?: string) {
       if (programId) {
         query = query.eq('program_id', programId);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data as any[];
@@ -171,7 +171,7 @@ export function useAssessments(programId?: string) {
 
 export function useCreateAssessment() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (newAssessment: {
       program_id: string;
@@ -188,7 +188,7 @@ export function useCreateAssessment() {
         })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -213,7 +213,7 @@ export function useClasses() {
         .select('*')
         .eq('is_active', true)
         .order('name');
-      
+
       if (error) throw error;
       return data;
     },
@@ -231,11 +231,11 @@ export function useStudents(classId?: string) {
         .select('*')
         .eq('is_active', true)
         .order('name');
-      
+
       if (classId && classId !== 'all') {
         query = query.eq('class_id', classId);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -252,7 +252,7 @@ export function useStudent(studentId: string) {
         .select('*')
         .eq('id', studentId)
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -268,7 +268,7 @@ export function useCurrentStudent() {
       if (!user?.id) return null;
       const { data, error } = await supabase
         .from('students')
-        .select('*, classes(name)')
+        .select('*, classes(name, academic_year)')
         .eq('user_id', user.id)
         .maybeSingle();
       if (error) throw error;
@@ -289,26 +289,26 @@ export function useNotifications(studentId: string) {
         .select('*')
         .eq('student_id', studentId)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data;
     },
     enabled: !!studentId,
     // Refetch often or use subscription
-    refetchInterval: 60000, 
+    refetchInterval: 60000,
   });
 }
 
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (notificationId: string) => {
       const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
         .eq('id', notificationId);
-        
+
       if (error) throw error;
     },
     onSuccess: (_, notificationId) => {
@@ -341,7 +341,7 @@ export function useStudentScores(studentId: string) {
           )
         `)
         .eq('student_id', studentId); // We filter by assessment_id in UI for now, or update this query later
-      
+
       if (error) throw error;
       return data;
     },
@@ -371,19 +371,19 @@ export function useClassScores(classId: string = 'all') {
           )
         `)
         .eq('is_active', true);
-      
+
       if (classId !== 'all') {
         studentsQuery = studentsQuery.eq('class_id', classId);
       }
-      
+
       const { data, error } = await studentsQuery;
       if (error) throw error;
-      
+
       // Validate response
       if (!Array.isArray(data)) {
         throw new Error('Invalid response format: expected array of students');
       }
-      
+
       return data;
     },
   });
@@ -397,15 +397,15 @@ export function useUpdateStudentScore() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ 
-      studentId, 
-      subTopicId, 
-      score, 
+    mutationFn: async ({
+      studentId,
+      subTopicId,
+      score,
       academicYear,
       assessmentId
-    }: { 
-      studentId: string; 
-      subTopicId: string; 
+    }: {
+      studentId: string;
+      subTopicId: string;
       score: number;
       academicYear: number;
       assessmentId?: string;
@@ -433,7 +433,7 @@ export function useUpdateStudentScore() {
         .single();
 
       if (error) throw error;
-      
+
       // Response validation
       if (!data) {
         throw new Error('Server returned no data');
@@ -444,19 +444,19 @@ export function useUpdateStudentScore() {
           'Server-side validation may have rejected your value.'
         );
       }
-      
+
       return data;
     },
     onMutate: async (newData) => {
       // Optimistic update
-      await queryClient.cancelQueries({ 
-        queryKey: queryKeys.studentScores(newData.studentId) 
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.studentScores(newData.studentId)
       });
-      
+
       const previousData = queryClient.getQueryData(
         queryKeys.studentScores(newData.studentId)
       );
-      
+
       // Update cache optimistically
       queryClient.setQueryData(
         queryKeys.studentScores(newData.studentId),
@@ -469,7 +469,7 @@ export function useUpdateStudentScore() {
           );
         }
       );
-      
+
       return { previousData };
     },
     onSuccess: (_, variables) => {
@@ -496,13 +496,13 @@ export function useUpdateStudentScores() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      studentId, 
+    mutationFn: async ({
+      studentId,
       scores,
       academicYear,
       assessmentId
-    }: { 
-      studentId: string; 
+    }: {
+      studentId: string;
       scores: { subTopicId: string; score: number }[];
       academicYear: number;
       assessmentId?: string;
@@ -538,13 +538,13 @@ export function useUpdateStudentScores() {
 // Delete scores for a subject (by sub-topic IDs)
 export function useDeleteStudentSubjectScores() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ 
-      studentId, 
-      subTopicIds 
-    }: { 
-      studentId: string; 
+    mutationFn: async ({
+      studentId,
+      subTopicIds
+    }: {
+      studentId: string;
       subTopicIds: string[];
     }) => {
       const { error } = await supabase
@@ -552,15 +552,15 @@ export function useDeleteStudentSubjectScores() {
         .delete()
         .eq('student_id', studentId)
         .in('sub_topic_id', subTopicIds);
-      
+
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.studentScores(variables.studentId) });
-      queryClient.invalidateQueries({ queryKey: ['class_scores'] }); 
+      queryClient.invalidateQueries({ queryKey: ['class_scores'] });
       toast.success('ลบคะแนนเรียบร้อยแล้ว');
     },
-     onError: (error: Error) => {
+    onError: (error: Error) => {
       toast.error(`เกิดข้อผิดพลาดในการลบคะแนน: ${error.message}`);
     },
   });
@@ -569,14 +569,14 @@ export function useDeleteStudentSubjectScores() {
 // Delete ALL scores for a student
 export function useDeleteStudentScores() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (studentId: string) => {
       const { error } = await supabase
         .from('student_scores')
         .delete()
         .eq('student_id', studentId);
-      
+
       if (error) throw error;
     },
     onSuccess: (_, studentId) => {
@@ -598,7 +598,7 @@ export function useClassStatistics(classId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .rpc('get_class_statistics', { p_class_id: classId });
-      
+
       if (error) throw error;
       return data?.[0] || {
         total_students: 0,
@@ -617,11 +617,11 @@ export function useTopPerformers(classId: string, limit: number = 5) {
     queryKey: queryKeys.topPerformers(classId, limit),
     queryFn: async () => {
       const { data, error } = await supabase
-        .rpc('get_top_performers', { 
+        .rpc('get_top_performers', {
           p_class_id: classId,
-          p_limit: limit 
+          p_limit: limit
         });
-      
+
       if (error) throw error;
       return data || [];
     },
@@ -637,11 +637,11 @@ export function useClassSubjectStats(classId?: string) {
       let query = supabase
         .from('mv_class_subject_stats')
         .select('*');
-      
+
       if (classId && classId !== 'all') {
         query = query.eq('class_id', classId);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -654,7 +654,7 @@ export function useClassSubjectStats(classId?: string) {
 // Add new student
 export function useCreateStudent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (newStudent: {
       id: string;
@@ -668,7 +668,7 @@ export function useCreateStudent() {
         .insert(newStudent)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -685,9 +685,9 @@ export function useCreateStudent() {
 // Update student
 export function useUpdateStudent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { 
+    mutationFn: async ({ id, ...updates }: {
       id: string;
       name?: string;
       class_id?: string;
@@ -699,7 +699,7 @@ export function useUpdateStudent() {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -717,14 +717,14 @@ export function useUpdateStudent() {
 // Delete student
 export function useDeleteStudent() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (studentId: string) => {
       const { error } = await supabase
         .from('students')
         .delete()
         .eq('id', studentId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -740,14 +740,14 @@ export function useDeleteStudent() {
 // Bulk delete students
 export function useDeleteStudents() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (studentIds: string[]) => {
       const { error } = await supabase
         .from('students')
         .delete()
         .in('id', studentIds);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -764,13 +764,13 @@ export function useDeleteStudents() {
 export function useUpdateScore() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
+
   return useMutation({
-    mutationFn: async ({ 
-      studentId, 
-      subTopicId, 
-      score 
-    }: { 
+    mutationFn: async ({
+      studentId,
+      subTopicId,
+      score
+    }: {
       studentId: string;
       subTopicId: string;
       score: number;
@@ -785,7 +785,7 @@ export function useUpdateScore() {
         })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -804,7 +804,7 @@ export function useUpdateScore() {
 export function useBulkUpdateScores() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
+
   return useMutation({
     mutationFn: async (scores: Array<{
       student_id: string;
@@ -816,7 +816,7 @@ export function useBulkUpdateScores() {
           p_scores: scores,
           p_updated_by: user?.id,
         });
-      
+
       if (error) throw error;
       return data;
     },
@@ -835,12 +835,12 @@ export function useBulkUpdateScores() {
 // Delete score
 export function useDeleteScore() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ 
-      studentId, 
-      subTopicId 
-    }: { 
+    mutationFn: async ({
+      studentId,
+      subTopicId
+    }: {
       studentId: string;
       subTopicId: string;
     }) => {
@@ -849,7 +849,7 @@ export function useDeleteScore() {
         .delete()
         .eq('student_id', studentId)
         .eq('sub_topic_id', subTopicId);
-      
+
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
@@ -866,7 +866,7 @@ export function useDeleteScore() {
 // Refresh materialized views
 export function useRefreshStatistics() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async () => {
       const { error } = await supabase.rpc('refresh_statistics');
@@ -888,7 +888,7 @@ export function useRefreshStatistics() {
 // Create subject
 export function useCreateSubject() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (subject: {
       id: string;
@@ -902,7 +902,7 @@ export function useCreateSubject() {
         .insert(subject)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -920,7 +920,7 @@ export function useCreateSubject() {
 // Update subject
 export function useUpdateSubject() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: {
       id: string;
@@ -934,7 +934,7 @@ export function useUpdateSubject() {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -952,14 +952,14 @@ export function useUpdateSubject() {
 // Delete subject
 export function useDeleteSubject() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (subjectId: string) => {
       const { error } = await supabase
         .from('subjects')
         .delete()
         .eq('id', subjectId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -979,7 +979,7 @@ export function useDeleteSubject() {
 // Create sub-topic
 export function useCreateSubTopic() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (subTopic: {
       id: string;
@@ -993,7 +993,7 @@ export function useCreateSubTopic() {
         .insert(subTopic)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -1012,7 +1012,7 @@ export function useCreateSubTopic() {
 // Update sub-topic
 export function useUpdateSubTopic() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: {
       id: string;
@@ -1026,7 +1026,7 @@ export function useUpdateSubTopic() {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -1044,14 +1044,14 @@ export function useUpdateSubTopic() {
 // Delete sub-topic
 export function useDeleteSubTopic() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (subTopicId: string) => {
       const { error } = await supabase
         .from('sub_topics')
         .delete()
         .eq('id', subTopicId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1070,7 +1070,7 @@ export function useDeleteSubTopic() {
 // Assign subject to class
 export function useAssignSubjectToClass() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ classId, subjectId }: {
       classId: string;
@@ -1084,7 +1084,7 @@ export function useAssignSubjectToClass() {
         })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -1102,7 +1102,7 @@ export function useAssignSubjectToClass() {
 // Remove subject from class
 export function useRemoveSubjectFromClass() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ classId, subjectId }: {
       classId: string;
@@ -1113,7 +1113,7 @@ export function useRemoveSubjectFromClass() {
         .delete()
         .eq('class_id', classId)
         .eq('subject_id', subjectId);
-      
+
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
@@ -1150,7 +1150,7 @@ export function useAcademicYears() {
         .from('academic_years')
         .select('*')
         .order('year_number', { ascending: false });
-      
+
       if (error) throw error;
       return data as AcademicYear[];
     },
@@ -1167,7 +1167,7 @@ export function useCurrentAcademicYear() {
         .select('*')
         .eq('is_current', true)
         .single();
-      
+
       if (error) {
         // If no current year, return the most recent active year
         const { data: fallbackData, error: fallbackError } = await supabase
@@ -1177,11 +1177,11 @@ export function useCurrentAcademicYear() {
           .order('year_number', { ascending: false })
           .limit(1)
           .single();
-        
+
         if (fallbackError) throw fallbackError;
         return fallbackData as AcademicYear;
       }
-      
+
       return data as AcademicYear;
     },
   });
@@ -1197,7 +1197,7 @@ export function useStudentScoresByYear(studentId: string, academicYear: number) 
           p_student_id: studentId,
           p_academic_year: academicYear,
         });
-      
+
       if (error) throw error;
       return data;
     },
@@ -1215,7 +1215,7 @@ export function useClassStatisticsByYear(classId: string, academicYear: number) 
           p_class_id: classId,
           p_academic_year: academicYear,
         });
-      
+
       if (error) throw error;
       return data?.[0] || {
         total_students: 0,
@@ -1238,7 +1238,7 @@ export function useStudentYearComparison(studentId: string) {
         .rpc('get_student_year_comparison', {
           p_student_id: studentId,
         });
-      
+
       if (error) throw error;
       return data;
     },
@@ -1249,7 +1249,7 @@ export function useStudentYearComparison(studentId: string) {
 // Create academic year
 export function useCreateAcademicYear() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (year: {
       id: string;
@@ -1265,7 +1265,7 @@ export function useCreateAcademicYear() {
         .insert(year)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -1282,7 +1282,7 @@ export function useCreateAcademicYear() {
 // Set current academic year
 export function useSetCurrentAcademicYear() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (yearId: string) => {
       // Use direct updates instead of RPC to avoid "UPDATE requires WHERE clause" error
@@ -1291,7 +1291,7 @@ export function useSetCurrentAcademicYear() {
         .from('academic_years')
         .update({ is_current: false })
         .eq('is_current', true);
-      
+
       if (unsetError) throw unsetError;
 
       // 2. Set the new year as current
@@ -1299,7 +1299,7 @@ export function useSetCurrentAcademicYear() {
         .from('academic_years')
         .update({ is_current: true })
         .eq('id', yearId);
-      
+
       if (setError) throw setError;
     },
     onSuccess: () => {
@@ -1316,13 +1316,13 @@ export function useSetCurrentAcademicYear() {
 // Archive academic year
 export function useArchiveAcademicYear() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (yearId: string) => {
       const { error } = await supabase.rpc('archive_academic_year', {
         p_year_id: yearId,
       });
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1339,7 +1339,7 @@ export function useArchiveAcademicYear() {
 // Update academic year
 export function useUpdateAcademicYear() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: {
       id: string;
@@ -1355,7 +1355,7 @@ export function useUpdateAcademicYear() {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -1372,14 +1372,14 @@ export function useUpdateAcademicYear() {
 // Delete academic year
 export function useDeleteAcademicYear() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (yearId: string) => {
       const { error } = await supabase
         .from('academic_years')
         .delete()
         .eq('id', yearId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1403,7 +1403,7 @@ export function useYearPrograms(academicYearId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .rpc('get_year_programs', { p_academic_year_id: academicYearId });
-      
+
       if (error) throw error;
       return data || [];
     },
@@ -1418,7 +1418,7 @@ export function useYearClasses(academicYearId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .rpc('get_year_classes', { p_academic_year_id: academicYearId });
-      
+
       if (error) throw error;
       return data || [];
     },
@@ -1433,7 +1433,7 @@ export function useProgramClasses(programId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .rpc('get_program_classes', { p_program_id: programId });
-      
+
       if (error) throw error;
       return data || [];
     },
@@ -1448,7 +1448,7 @@ export function useClassPrograms(classId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .rpc('get_class_programs', { p_class_id: classId });
-      
+
       if (error) throw error;
       return data || [];
     },
@@ -1463,7 +1463,7 @@ export function useProgramStudents(programId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .rpc('get_program_students', { p_program_id: programId });
-      
+
       if (error) throw error;
       return data || [];
     },
@@ -1481,11 +1481,11 @@ export function useExamProgramsByYear(academicYearId?: string) {
         .select('*')
         .eq('is_active', true)
         .order('name');
-      
+
       if (academicYearId) {
         query = query.eq('academic_year_id', academicYearId);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -1503,11 +1503,11 @@ export function useClassesByYear(academicYearId?: string) {
         .select('*')
         .eq('is_active', true)
         .order('name');
-      
+
       if (academicYearId) {
         query = query.eq('academic_year_id', academicYearId);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -1521,7 +1521,7 @@ export function useClassesByYear(academicYearId?: string) {
 export function useAssignClassToProgram() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
+
   return useMutation({
     mutationFn: async ({ programId, classId }: {
       programId: string;
@@ -1533,7 +1533,7 @@ export function useAssignClassToProgram() {
           p_class_id: classId,
           p_assigned_by: user?.id,
         });
-      
+
       if (error) throw error;
       return data;
     },
@@ -1553,7 +1553,7 @@ export function useAssignClassToProgram() {
 // Remove class from program
 export function useRemoveClassFromProgram() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ programId, classId }: {
       programId: string;
@@ -1564,7 +1564,7 @@ export function useRemoveClassFromProgram() {
           p_program_id: programId,
           p_class_id: classId,
         });
-      
+
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
@@ -1585,7 +1585,7 @@ export function useRemoveClassFromProgram() {
 // Create exam program (now requires academic year)
 export function useCreateExamProgram() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (program: {
       id: string;
@@ -1599,7 +1599,7 @@ export function useCreateExamProgram() {
         .insert(program)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -1617,7 +1617,7 @@ export function useCreateExamProgram() {
 // Update exam program
 export function useUpdateExamProgram() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: {
       id: string;
@@ -1631,7 +1631,7 @@ export function useUpdateExamProgram() {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -1649,14 +1649,14 @@ export function useUpdateExamProgram() {
 // Delete exam program
 export function useDeleteExamProgram() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (programId: string) => {
       const { error } = await supabase
         .from('exam_programs')
         .delete()
         .eq('id', programId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1676,7 +1676,7 @@ export function useDeleteExamProgram() {
 // Create class (now requires academic year)
 export function useCreateClass() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (classData: {
       id: string;
@@ -1689,7 +1689,7 @@ export function useCreateClass() {
         .insert(classData)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -1707,7 +1707,7 @@ export function useCreateClass() {
 // Update class
 export function useUpdateClass() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async ({ id, ...updates }: {
       id: string;
@@ -1720,7 +1720,7 @@ export function useUpdateClass() {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -1738,14 +1738,14 @@ export function useUpdateClass() {
 // Delete class
 export function useDeleteClass() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (classId: string) => {
       const { error } = await supabase
         .from('classes')
         .delete()
         .eq('id', classId);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1764,13 +1764,13 @@ export function useDeleteClass() {
 export function useCreateUser() {
   const { user: adminUser } = useAuth();
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (data: { 
-      email: string; 
-      password: string; 
-      fullName: string; 
-      role: string 
+    mutationFn: async (data: {
+      email: string;
+      password: string;
+      fullName: string;
+      role: string
     }) => {
       // Validate input
       if (!data.email || !data.password || !data.fullName || !data.role) {
@@ -1782,7 +1782,7 @@ export function useCreateUser() {
       if (data.password.length < 8) {
         throw new Error('Password must be at least 8 characters');
       }
-      
+
       // Enhanced RPC with audit trail
       const { data: userId, error } = await supabase.rpc('create_new_user', {
         p_email: data.email,
@@ -1790,14 +1790,14 @@ export function useCreateUser() {
         p_full_name: data.fullName,
         p_role: data.role
       } as any);
-      
+
       if (error) throw error;
-      
+
       // Validate response
       if (!userId) {
         throw new Error('Server returned no user ID');
       }
-      
+
       return userId;
     },
     onSuccess: (userId) => {
@@ -1814,7 +1814,7 @@ export function useCreateUser() {
 // Update existing user profile and role
 export function useUpdateUser() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (data: { userId: string; fullName: string; role: string }) => {
       // 1. Update profile (full_name)
@@ -1822,17 +1822,17 @@ export function useUpdateUser() {
         .from('profiles')
         .update({ full_name: data.fullName })
         .eq('user_id', data.userId);
-        
+
       if (profileError) throw profileError;
-      
+
       // 2. Update role
       const { error: roleError } = await supabase
         .from('user_roles')
         .update({ role: data.role as any })
         .eq('user_id', data.userId);
-        
+
       if (roleError) throw roleError;
-      
+
       return data.userId;
     },
     onSuccess: () => {
@@ -1849,13 +1849,13 @@ export function useUpdateUser() {
 // Delete user
 export function useDeleteUser() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (userId: string) => {
       const { error } = await supabase.rpc('delete_user', {
         p_user_id: userId
       });
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1875,7 +1875,7 @@ export function useChangePassword() {
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -1901,11 +1901,11 @@ export function useTeacherAssignments(teacherId?: string) {
           subject_id,
           subjects (id, name, code)
         `);
-      
+
       if (teacherId) {
         query = query.eq('teacher_id', teacherId);
       }
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -1958,15 +1958,15 @@ export function useTeachersList() {
         .from('user_roles')
         .select('user_id')
         .eq('role', 'teacher');
-        
+
       if (!roles?.length) return [];
-      
+
       const userIds = roles.map(r => r.user_id);
       const { data: profiles } = await supabase
         .from('profiles')
         .select('*')
         .in('user_id', userIds);
-        
+
       return profiles || [];
     }
   });
@@ -1975,11 +1975,11 @@ export function useTeachersList() {
 export function useUpsertStudentScores() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  
+
   return useMutation({
     mutationFn: async ({ scores, assessmentId }: { scores: any[]; assessmentId?: string }) => {
       if (!user?.id) throw new Error("User not authenticated");
-      
+
       // Inject assessment_id into scores
       const scoresWithAssessment = scores.map(s => ({
         ...s,
@@ -1990,7 +1990,7 @@ export function useUpsertStudentScores() {
         p_scores: scoresWithAssessment,
         p_updated_by: user.id
       });
-      
+
       if (error) throw error;
     },
     onSuccess: () => {

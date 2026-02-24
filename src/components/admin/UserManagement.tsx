@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Shield, GraduationCap, UserCog, Loader2, Plus } from 'lucide-react';
+import { Users, Shield, GraduationCap, UserCog, Loader2, Plus, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {
   Dialog,
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCreateUser, useUpdateUser, useDeleteUser, useCreateStudent, useClasses } from "@/hooks/useSupabaseData";
+import { useCreateUser, useUpdateUser, useDeleteUser, useCreateStudent, useClassesByYear, useAcademicYears, useCurrentAcademicYear } from "@/hooks/useSupabaseData";
 
 
 import { Edit2, Trash2 } from 'lucide-react';
@@ -71,12 +71,23 @@ const UserManagement = () => {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
-  
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Create User State
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const createUserMutation = useCreateUser();
   const createStudentMutation = useCreateStudent();
-  const { data: classes = [] } = useClasses();
+
+  const [selectedYear, setSelectedYear] = useState<string>('');
+  const { data: currentYear } = useCurrentAcademicYear();
+  const { data: academicYears = [] } = useAcademicYears();
+  const { data: classes = [] } = useClassesByYear(selectedYear === 'all' ? undefined : (selectedYear || undefined));
+
+  useEffect(() => {
+    if (currentYear?.id && !selectedYear) {
+      setSelectedYear(currentYear.id);
+    }
+  }, [currentYear, selectedYear]);
 
   const [newUser, setNewUser] = useState({
 
@@ -99,7 +110,7 @@ const UserManagement = () => {
     fullName: '',
     role: 'student' as AppRole,
     studentId: '',
-    oldStudentId: '' 
+    oldStudentId: ''
   });
 
   // Delete User State
@@ -108,7 +119,7 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     setLoading(true);
-    
+
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('user_id, email, full_name, created_at');
@@ -149,7 +160,7 @@ const UserManagement = () => {
     const usersWithRoles: UserWithRole[] = profiles.map((profile) => {
       const userRole = roles.find((r) => r.user_id === profile.user_id);
       const student = studentsData?.find(s => s.user_id === profile.user_id);
-      
+
       return {
         user_id: profile.user_id,
         email: profile.email,
@@ -189,7 +200,7 @@ const UserManagement = () => {
         title: 'สำเร็จ',
         description: `เปลี่ยนบทบาทเป็น ${roleLabels[newRole]} เรียบร้อยแล้ว`,
       });
-      setUsers(users.map((u) => 
+      setUsers(users.map((u) =>
         u.user_id === userId ? { ...u, role: newRole } : u
       ));
     }
@@ -246,7 +257,7 @@ const UserManagement = () => {
           // Note: We don't rollback the user creation here, but in a real prod app we might want to
         }
       }
-      
+
       setCreateDialogOpen(false);
       setNewUser({
         email: '',
@@ -259,7 +270,7 @@ const UserManagement = () => {
 
 
       fetchUsers(); // Reload list
-      
+
     } catch (error) {
       // Error handled by mutation hook options mostly, but we catch here to prevent crash
       console.error(error);
@@ -280,7 +291,7 @@ const UserManagement = () => {
 
   const handleUpdateUser = async () => {
     if (!selectedUser) return;
-    
+
     try {
       // 1. Update User Profile & Role
       await updateUserMutation.mutateAsync({
@@ -291,38 +302,38 @@ const UserManagement = () => {
 
       // 2. Update Student ID if changed (and if role is student)
       if (editForm.role === 'student' && editForm.studentId && editForm.studentId !== editForm.oldStudentId) {
-         if (!editForm.oldStudentId) {
-             // Case: User didn't have a student record linked or we are assigning a new ID to a fresh student
-             // This might happen if we just changed role to Student.
-             // Ideally we should create a student record here if missing, but for now we focus on UPDATE.
-             // If oldStudentId is missing, it means no previous student record found for this user in fetchUsers.
-             // We can try to update based on user_id if we want, or just warn.
-             // For safety, let's try to update where user_id matches
-             const { error: idError } = await supabase
-                .from('students')
-                .update({ id: editForm.studentId })
-                .eq('user_id', selectedUser.user_id);
-             
-             if (idError) throw idError;
+        if (!editForm.oldStudentId) {
+          // Case: User didn't have a student record linked or we are assigning a new ID to a fresh student
+          // This might happen if we just changed role to Student.
+          // Ideally we should create a student record here if missing, but for now we focus on UPDATE.
+          // If oldStudentId is missing, it means no previous student record found for this user in fetchUsers.
+          // We can try to update based on user_id if we want, or just warn.
+          // For safety, let's try to update where user_id matches
+          const { error: idError } = await supabase
+            .from('students')
+            .update({ id: editForm.studentId })
+            .eq('user_id', selectedUser.user_id);
 
-         } else {
-             // Standard ID update
-             const { error: idError } = await supabase
-                .from('students')
-                .update({ id: editForm.studentId })
-                .eq('id', editForm.oldStudentId);
-            
-             if (idError) throw idError;
-         }
-         toast({
-            title: 'สำเร็จ',
-            description: 'อัปเดตข้อมูลผู้ใช้และรหัสนักเรียนเรียบร้อยแล้ว',
-         });
+          if (idError) throw idError;
+
+        } else {
+          // Standard ID update
+          const { error: idError } = await supabase
+            .from('students')
+            .update({ id: editForm.studentId })
+            .eq('id', editForm.oldStudentId);
+
+          if (idError) throw idError;
+        }
+        toast({
+          title: 'สำเร็จ',
+          description: 'อัปเดตข้อมูลผู้ใช้และรหัสนักเรียนเรียบร้อยแล้ว',
+        });
       } else {
-          toast({
-            title: 'สำเร็จ',
-            description: 'อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว',
-         });
+        toast({
+          title: 'สำเร็จ',
+          description: 'อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว',
+        });
       }
 
       setEditDialogOpen(false);
@@ -339,7 +350,7 @@ const UserManagement = () => {
 
   const handleDeleteUser = async () => {
     if (!deleteId) return;
-    
+
     try {
       await deleteUserMutation.mutateAsync(deleteId);
       setDeleteId(null);
@@ -357,6 +368,11 @@ const UserManagement = () => {
     );
   }
 
+  const filteredUsers = users.filter(user =>
+    (user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+    (user.email?.toLowerCase().includes(searchQuery.toLowerCase()) || false)
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -365,121 +381,159 @@ const UserManagement = () => {
     >
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <div>
-                <CardTitle>จัดการผู้ใช้งาน</CardTitle>
-                <CardDescription>
-                  ดูและจัดการบทบาทของผู้ใช้ในระบบ (เฉพาะผู้ดูแลระบบ)
-                </CardDescription>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                <div>
+                  <CardTitle>จัดการผู้ใช้งาน</CardTitle>
+                  <CardDescription>
+                    ดูและจัดการบทบาทของผู้ใช้ในระบบ (เฉพาะผู้ดูแลระบบ)
+                  </CardDescription>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <UserCSVUpload onSuccess={fetchUsers} />
-              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  เพิ่มผู้ใช้งาน
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>เพิ่มผู้ใช้งานใหม่</DialogTitle>
-                  <DialogDescription>
-                    กรอกข้อมูลเพื่อสร้างบัญชีผู้ใช้
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullname">ชื่อ-นามสกุล</Label>
-                    <Input 
-                      id="fullname" 
-                      value={newUser.fullName}
-                      onChange={(e) => setNewUser({...newUser, fullName: e.target.value})}
-                      placeholder="สมชาย ใจดี"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">อีเมล</Label>
-                    <Input 
-                      id="email" 
-                      type="email"
-                      value={newUser.email}
-                      onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                      placeholder="user@example.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">รหัสผ่าน</Label>
-                    <Input 
-                      id="password" 
-                      type="password"
-                      value={newUser.password}
-                      onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">บทบาท</Label>
-                    <Select 
-                      value={newUser.role} 
-                      onValueChange={(val: AppRole) => setNewUser({...newUser, role: val})}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="เลือกบทบาท" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="student">นักเรียน</SelectItem>
-                        <SelectItem value="teacher">ครู</SelectItem>
-                        <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {newUser.role === 'student' && (
-                    <>
+              <div className="flex gap-2">
+                <UserCSVUpload onSuccess={fetchUsers} />
+                <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      เพิ่มผู้ใช้งาน
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>เพิ่มผู้ใช้งานใหม่</DialogTitle>
+                      <DialogDescription>
+                        กรอกข้อมูลเพื่อสร้างบัญชีผู้ใช้
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="studentId">รหัสนักเรียน <span className="text-destructive">*</span></Label>
-                        <Input 
-                          id="studentId" 
-                          value={newUser.studentId}
-                          onChange={(e) => setNewUser({...newUser, studentId: e.target.value})}
-                          placeholder="เช่น 65001"
+                        <Label htmlFor="fullname">ชื่อ-นามสกุล</Label>
+                        <Input
+                          id="fullname"
+                          value={newUser.fullName}
+                          onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })}
+                          placeholder="สมชาย ใจดี"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="classId">ห้องเรียน <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="email">อีเมล</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={newUser.email}
+                          onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                          placeholder="user@example.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="password">รหัสผ่าน</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          value={newUser.password}
+                          onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="role">บทบาท</Label>
                         <Select
-                          value={newUser.classId}
-                          onValueChange={(val) => setNewUser({...newUser, classId: val})}
+                          value={newUser.role}
+                          onValueChange={(val: AppRole) => setNewUser({ ...newUser, role: val })}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="เลือกห้องเรียน" />
+                            <SelectValue placeholder="เลือกบทบาท" />
                           </SelectTrigger>
                           <SelectContent>
-                            {classes.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                            ))}
+                            <SelectItem value="student">นักเรียน</SelectItem>
+                            <SelectItem value="teacher">ครู</SelectItem>
+                            <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                    </>
-                  )}
-                  </div>
+
+                      {newUser.role === 'student' && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="studentId">รหัสนักเรียน <span className="text-destructive">*</span></Label>
+                            <Input
+                              id="studentId"
+                              value={newUser.studentId}
+                              onChange={(e) => setNewUser({ ...newUser, studentId: e.target.value })}
+                              placeholder="เช่น 65001"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="academicYear">ปีการศึกษา</Label>
+                            <Select
+                              value={selectedYear}
+                              onValueChange={(val) => {
+                                setSelectedYear(val);
+                                setNewUser({ ...newUser, classId: '' }); // Reset class when year changes
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="เลือกปีการศึกษา" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">ทั้งหมด</SelectItem>
+                                {academicYears.map((year) => (
+                                  <SelectItem key={year.id} value={year.id}>{year.display_name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="classId">ห้องเรียน <span className="text-destructive">*</span></Label>
+                            <Select
+                              value={newUser.classId}
+                              onValueChange={(val) => setNewUser({ ...newUser, classId: val })}
+                              disabled={selectedYear !== 'all' && classes.length === 0}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={
+                                  selectedYear !== 'all' && classes.length === 0
+                                    ? "ไม่มีห้องเรียนในปีการศึกษานี้"
+                                    : "เลือกห้องเรียน"
+                                } />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {classes.map((c) => (
+                                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+                    </div>
 
 
 
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>ยกเลิก</Button>
-                  <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
-                    {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    บันทึก
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>ยกเลิก</Button>
+                      <Button onClick={handleCreateUser} disabled={createUserMutation.isPending}>
+                        {createUserMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        บันทึก
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="relative w-full max-w-sm">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="ค้นหาชื่อ หรือ อีเมล..."
+                  className="pl-9"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -501,14 +555,14 @@ const UserManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.length === 0 ? (
+                  {filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
-                        ไม่พบผู้ใช้ในระบบ
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        {searchQuery ? 'ไม่พบผู้ใช้ที่ค้นหา' : 'ไม่พบผู้ใช้ในระบบ'}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    users.map((user) => (
+                    filteredUsers.map((user) => (
                       <TableRow key={user.user_id}>
                         <TableCell className="font-medium">
                           {user.full_name || 'ไม่ระบุชื่อ'}
@@ -557,17 +611,17 @@ const UserManagement = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-8 w-8 text-primary"
                               onClick={() => handleOpenEdit(user)}
                             >
                               <Edit2 className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-8 w-8 text-destructive"
                               onClick={() => setDeleteId(user.user_id)}
                               disabled={user.user_id === useAuth().user?.id} // Don't allow self-delete
@@ -598,17 +652,17 @@ const UserManagement = () => {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="edit-fullname">ชื่อ-นามสกุล</Label>
-              <Input 
-                id="edit-fullname" 
+              <Input
+                id="edit-fullname"
                 value={editForm.fullName}
-                onChange={(e) => setEditForm({...editForm, fullName: e.target.value})}
+                onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-role">บทบาท</Label>
-              <Select 
-                value={editForm.role} 
-                onValueChange={(val: AppRole) => setEditForm({...editForm, role: val})}
+              <Select
+                value={editForm.role}
+                onValueChange={(val: AppRole) => setEditForm({ ...editForm, role: val })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="เลือกบทบาท" />
@@ -624,10 +678,10 @@ const UserManagement = () => {
             {editForm.role === 'student' && (
               <div className="space-y-2">
                 <Label htmlFor="edit-studentId">รหัสนักเรียน</Label>
-                <Input 
-                  id="edit-studentId" 
+                <Input
+                  id="edit-studentId"
                   value={editForm.studentId}
-                  onChange={(e) => setEditForm({...editForm, studentId: e.target.value})}
+                  onChange={(e) => setEditForm({ ...editForm, studentId: e.target.value })}
                   placeholder="เช่น 65001"
                 />
                 <p className="text-xs text-muted-foreground text-yellow-600">
@@ -657,7 +711,7 @@ const UserManagement = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteUser}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
