@@ -1,0 +1,6 @@
+{
+  "code": 500,
+  "error_code": "unexpected_failure",
+  "msg": "Database error finding users",
+  "error_id": "9d30cc53c138ce0f-BKK"
+}

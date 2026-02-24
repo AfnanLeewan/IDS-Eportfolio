@@ -13,11 +13,12 @@ interface YearSelectorProps {
   value: number | null;
   onValueChange: (year: number) => void;
   className?: string;
+  allowedYears?: number[];
 }
 
-export function YearSelector({ value, onValueChange, className }: YearSelectorProps) {
+export function YearSelector({ value, onValueChange, className, allowedYears }: YearSelectorProps) {
   const { data: years = [], isLoading } = useAcademicYears();
-  const {  data: currentYear } = useCurrentAcademicYear();
+  const { data: currentYear } = useCurrentAcademicYear();
 
   // Set default to current year when component mounts
   useEffect(() => {
@@ -32,11 +33,16 @@ export function YearSelector({ value, onValueChange, className }: YearSelectorPr
     );
   }
 
-  const activeYears = years.filter(y => y.is_active || y.year_number === value);
+  const activeYears = years.filter(y => {
+    if (allowedYears && allowedYears.length > 0) {
+      if (!allowedYears.includes(y.year_number)) return false;
+    }
+    return y.is_active || y.year_number === value;
+  });
 
   return (
-    <Select 
-      value={value?.toString() || currentYear?.year_number.toString()} 
+    <Select
+      value={value?.toString() || currentYear?.year_number.toString()}
       onValueChange={(val) => onValueChange(parseInt(val))}
     >
       <SelectTrigger className={`rounded-xl ${className || 'w-[200px]'}`}>
